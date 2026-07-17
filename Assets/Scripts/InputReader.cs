@@ -2,9 +2,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
 
-public class InputReader: PlayerInputAction.IPlayerActions
+public class InputReader: MonoBehaviour, PlayerInputAction.IPlayerActions
 {
-    private readonly PlayerInputAction inputAction;
+    private PlayerInputAction inputAction;
 
     public event Action Collect;
     public event Action Dash;
@@ -12,10 +12,12 @@ public class InputReader: PlayerInputAction.IPlayerActions
     private Vector2 moveInput = new Vector2();
     private Vector2 lookDiff = new Vector2();
 
-    public InputReader()
+    void Awake()
     {
         inputAction = new PlayerInputAction();
         inputAction.Player.SetCallbacks(this);
+
+        inputAction.Player.Enable();
     }
 
     //外部公開用メソッド

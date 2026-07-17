@@ -11,7 +11,7 @@ public class Player : MonoBehaviour
 
     CharacterController charConn;
 
-    private Vector3 velocity = new Vector3();
+    private float velocity = 0f;
     private float rVelocity = 0f;
 
     void Awake()
@@ -38,25 +38,24 @@ public class Player : MonoBehaviour
         //回転の適用
         this.transform.Rotate(0f, rVelocity * Time.fixedDeltaTime, 0f);
 
+        //目標速度と目標値との差を計算
+        float targetVelocity = moveInput.y * maxSpeed;
+        float diffVelocity = targetVelocity - velocity;
+
+        //速度を計算
+        if(Mathf.Abs(diffVelocity) < acceleration * Time.fixedDeltaTime)
+        {
+            velocity = targetVelocity;
+        }else{
+            velocity += Mathf.Sign(diffVelocity) * acceleration * Time.fixedDeltaTime;
+        }
 
         //移動方向への方向ベクトルを計算
         Vector3 direction = this.transform.forward;
         direction.y = 0;
         direction = direction.normalized;
 
-        //目標速度と目標値との差を計算
-        Vector3 targetVelocity = direction * moveInput.y * maxSpeed;
-        Vector3 diffVelocity = targetVelocity - velocity;
-
-        //速度を計算
-        if(diffVelocity.sqrMagnitude < Mathf.Pow(acceleration * Time.fixedDeltaTime, 2))
-        {
-            velocity = targetVelocity;
-        }else{
-            velocity += diffVelocity.normalized * acceleration * Time.fixedDeltaTime;
-        }
-
         //移動の適用
-        charConn.Move(velocity * Time.fixedDeltaTime);
+        charConn.Move(direction * velocity * Time.fixedDeltaTime);
     }
 }

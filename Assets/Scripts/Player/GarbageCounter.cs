@@ -6,7 +6,7 @@ public class GarbageCounter: MonoBehaviour
     public int count{get;private set;} = 0;
     public event Action<int> OnUpdateCount;
 
-    public void CoutUp()
+    public void CountUp()
     {
         count++;
         OnUpdateCount?.Invoke(count);

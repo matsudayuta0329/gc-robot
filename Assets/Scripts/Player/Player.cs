@@ -9,19 +9,32 @@ public class Player : MonoBehaviour
     [SerializeField]private float acceleration = 45f;
     [SerializeField]private float rAcceleration = 1080f;
 
+    [SerializeField]private Transform pickupPivot;
+    [SerializeField]private float pickupRadius;
+    [SerializeField]private LayerMask garbageLayer;
+
     CharacterController charConn;
+    GarbageCounter garbages;
 
     private float velocity = 0f;
     private float rVelocity = 0f;
 
+    //プレイヤーの演出待機用
+    private bool isPause = false;
+
     void Awake()
     {
         TryGetComponent(out charConn);
+        TryGetComponent(out garbages);
+
+        inputReader.Collect += Collect;
     }
 
     void FixedUpdate()
     {
-        Vector2 moveInput = inputReader.GetMoveInput();
+        //インプットを取得(演出時は入力をキャンセル)
+        //滑って進む程度の距離の演出中の移動は許容するようにする
+        Vector2 moveInput = isPause? Vector2.zero: inputReader.GetMoveInput();
 
         //目標角速度と目標値との差を算出
         float targetRVelocity = moveInput.x * rMaxSpeed;
@@ -57,5 +70,23 @@ public class Player : MonoBehaviour
 
         //移動の適用
         charConn.Move(direction * velocity * Time.fixedDeltaTime);
+    }
+
+    void Collect()
+    {
+        //付近のごみオブジェクトを取得
+        Collider[] results = Physics.OverlapSphere(pickupPivot.position, pickupRadius, garbageLayer);
+
+        //ごみオブジェクトに取得されたことを通知しカウントアップ
+        //プレイ感によっては正面にある一つだけを回収する方向も視野に
+        for(int i = 0; i < results.Length; i++)
+        {
+            Garbage result;
+            if(results[i].TryGetComponent(out result))
+            {
+                result.OnCollect();
+                garbages.CountUp();
+            }
+        }
     }
 }

@@ -4,10 +4,10 @@ public class Player : MonoBehaviour
 {
     [SerializeField]InputReader inputReader;
     [SerializeField]private Transform model;
-    [SerializeField]private float maxSpeed = 10f;
-    [SerializeField]private float rMaxSpeed = 720f;
-    [SerializeField]private float acceleration;
-    [SerializeField]private float rAcceleration;
+    [SerializeField]private float maxSpeed = 15f;
+    [SerializeField]private float rMaxSpeed = 270f;
+    [SerializeField]private float acceleration = 45f;
+    [SerializeField]private float rAcceleration = 1080f;
 
     CharacterController charConn;
 

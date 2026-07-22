@@ -9,6 +9,7 @@ public class Player : MonoBehaviour
     [SerializeField]private float acceleration = 45f;
     [SerializeField]private float rAcceleration = 1080f;
 
+    [SerializeField]private Transform suctionPortPivot;
     [SerializeField]private Transform pickupPivot;
     [SerializeField]private float pickupRadius;
     [SerializeField]private LayerMask garbageLayer;
@@ -26,8 +27,6 @@ public class Player : MonoBehaviour
     {
         TryGetComponent(out charConn);
         TryGetComponent(out garbages);
-
-        inputReader.Collect += Collect;
     }
 
     void FixedUpdate()
@@ -70,9 +69,13 @@ public class Player : MonoBehaviour
 
         //移動の適用
         charConn.Move(direction * velocity * Time.fixedDeltaTime);
+
+        
+        //周囲のごみを拾得
+        CollectGarbage();
     }
 
-    void Collect()
+    void CollectGarbage()
     {
         //付近のごみオブジェクトを取得
         Collider[] results = Physics.OverlapSphere(pickupPivot.position, pickupRadius, garbageLayer);
@@ -84,7 +87,7 @@ public class Player : MonoBehaviour
             Garbage result;
             if(results[i].TryGetComponent(out result))
             {
-                result.OnCollect();
+                result.OnCollect(suctionPortPivot);
                 garbages.CountUp();
             }
         }

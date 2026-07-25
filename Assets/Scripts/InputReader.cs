@@ -6,11 +6,11 @@ public class InputReader: MonoBehaviour, PlayerInputAction.IPlayerActions
 {
     private PlayerInputAction inputAction;
 
-    public event Action Collect;
     public event Action Dash;
 
     private Vector2 moveInput = new Vector2();
     private Vector2 lookDiff = new Vector2();
+    private bool isCollect = false;
 
     void Awake()
     {
@@ -29,6 +29,11 @@ public class InputReader: MonoBehaviour, PlayerInputAction.IPlayerActions
     public Vector2 GetLookDiff()
     {
         return lookDiff;
+    }
+
+    public bool GetIsCollect()
+    {
+        return isCollect;
     }
 
     //入力取得用ハンドラ
@@ -50,7 +55,11 @@ public class InputReader: MonoBehaviour, PlayerInputAction.IPlayerActions
     public void OnCollect(InputAction.CallbackContext context)
     {
         if(context.started)
-            Collect?.Invoke();
+        {
+            isCollect = true;
+        }else if(context.canceled){
+            isCollect = false;
+        }
     }
 
     public void OnDash(InputAction.CallbackContext context)

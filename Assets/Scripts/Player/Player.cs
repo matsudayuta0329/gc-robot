@@ -48,7 +48,7 @@ public class Player : MonoBehaviour
         {
             //インプットを取得(演出時は入力をキャンセル)
             //滑って進む程度の距離の演出中の移動は許容するようにする
-            Vector2 moveInput = isPause? Vector2.zero: isDash? new Vector2(1,1): inputReader.GetMoveInput();
+            Vector2 moveInput = isPause? Vector2.zero: inputReader.GetMoveInput();
 
             //目標角速度と目標値との差を算出
             float targetRVelocity = moveInput.x * rSpeed;
@@ -84,11 +84,33 @@ public class Player : MonoBehaviour
 
             //移動の適用
             charConn.Move(direction * velocity * Time.fixedDeltaTime);
-        }
 
-        
-        //周囲のごみを拾得
-        CollectGarbage();
+            //正面のごみを拾得
+            if(inputReader.GetIsCollect())
+            {
+                DrainGarbage();
+            }
+        }else{
+            //周囲のごみを拾得
+            CollectGarbage();
+        }
+    }
+
+    void DrainGarbage()
+    {
+        //付近のごみオブジェクトを取得
+        Collider[] results = Physics.OverlapSphere(pickupPivot.position, pickupRadius, garbageLayer);
+
+        //ごみオブジェクトに取得されたことを通知しカウントアップ
+        //プレイ感によっては正面にある一つだけを回収する方向も視野に
+        for(int i = 0; i < results.Length; i++)
+        {
+            Garbage result;
+            if(results[i].TryGetComponent(out result))
+            {
+                result.Drain();
+            }
+        }
     }
 
     void CollectGarbage()
@@ -103,7 +125,7 @@ public class Player : MonoBehaviour
             Garbage result;
             if(results[i].TryGetComponent(out result))
             {
-                result.OnCollect(suctionPortPivot);
+                result.Collect(suctionPortPivot);
                 garbages.CountUp(1);
             }
         }

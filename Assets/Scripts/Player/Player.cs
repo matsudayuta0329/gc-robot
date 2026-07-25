@@ -14,7 +14,8 @@ public class Player : MonoBehaviour
     [SerializeField]private float pickupRadius;
     [SerializeField]private LayerMask garbageLayer;
 
-    [SerializeField]private float dashTime;
+    [SerializeField]private float dashLength;
+    const float dashTime = 0.1f;
 
     CharacterController charConn;
     GarbageCounter garbages;
@@ -43,44 +44,47 @@ public class Player : MonoBehaviour
 
     void FixedUpdate()
     {
-        //インプットを取得(演出時は入力をキャンセル)
-        //滑って進む程度の距離の演出中の移動は許容するようにする
-        Vector2 moveInput = isPause? Vector2.zero: isDash? new Vector2(1,1): inputReader.GetMoveInput();
-
-        //目標角速度と目標値との差を算出
-        float targetRVelocity = moveInput.x * rSpeed;
-        float diffRVelocity = targetRVelocity - rVelocity;
-
-        //角速度を計算
-        if(Mathf.Abs(diffRVelocity) < rAcceleration * Time.fixedDeltaTime)
+        if(!isDash)
         {
-            rVelocity = targetRVelocity;
-        }else{
-            rVelocity += Mathf.Sign(diffRVelocity) * rAcceleration * Time.fixedDeltaTime;
+            //インプットを取得(演出時は入力をキャンセル)
+            //滑って進む程度の距離の演出中の移動は許容するようにする
+            Vector2 moveInput = isPause? Vector2.zero: isDash? new Vector2(1,1): inputReader.GetMoveInput();
+
+            //目標角速度と目標値との差を算出
+            float targetRVelocity = moveInput.x * rSpeed;
+            float diffRVelocity = targetRVelocity - rVelocity;
+
+            //角速度を計算
+            if(Mathf.Abs(diffRVelocity) < rAcceleration * Time.fixedDeltaTime)
+            {
+                rVelocity = targetRVelocity;
+            }else{
+                rVelocity += Mathf.Sign(diffRVelocity) * rAcceleration * Time.fixedDeltaTime;
+            }
+
+            //回転の適用
+            this.transform.Rotate(0f, rVelocity * Time.fixedDeltaTime, 0f);
+
+            //目標速度と目標値との差を計算
+            float targetVelocity = moveInput.y * speed;
+            float diffVelocity = targetVelocity - velocity;
+
+            //速度を計算
+            if(Mathf.Abs(diffVelocity) < acceleration * Time.fixedDeltaTime)
+            {
+                velocity = targetVelocity;
+            }else{
+                velocity += Mathf.Sign(diffVelocity) * acceleration * Time.fixedDeltaTime;
+            }
+
+            //移動方向への方向ベクトルを計算
+            Vector3 direction = this.transform.forward;
+            direction.y = 0;
+            direction = direction.normalized;
+
+            //移動の適用
+            charConn.Move(direction * velocity * Time.fixedDeltaTime);
         }
-
-        //回転の適用
-        this.transform.Rotate(0f, rVelocity * Time.fixedDeltaTime, 0f);
-
-        //目標速度と目標値との差を計算
-        float targetVelocity = moveInput.y * speed;
-        float diffVelocity = targetVelocity - velocity;
-
-        //速度を計算
-        if(Mathf.Abs(diffVelocity) < acceleration * Time.fixedDeltaTime)
-        {
-            velocity = targetVelocity;
-        }else{
-            velocity += Mathf.Sign(diffVelocity) * acceleration * Time.fixedDeltaTime;
-        }
-
-        //移動方向への方向ベクトルを計算
-        Vector3 direction = this.transform.forward;
-        direction.y = 0;
-        direction = direction.normalized;
-
-        //移動の適用
-        charConn.Move(direction * velocity * Time.fixedDeltaTime);
 
         
         //周囲のごみを拾得
@@ -100,42 +104,42 @@ public class Player : MonoBehaviour
             if(results[i].TryGetComponent(out result))
             {
                 result.OnCollect(suctionPortPivot);
-                garbages.CountUp();
+                garbages.CountUp(1);
             }
         }
     }
 
     async Awaitable Dash()
     {
+        //ダッシュ状態設定
         isDash = true;
+        garbages.CountDown(5);
 
-        garbages.CountDown();
+        float dashedLength = 0f;
 
-        float dashedTime = Time.time;
-        float acceleration_bef = acceleration;
+        //移動方向への方向ベクトルを計算
+        Vector3 direction = this.transform.forward;
+        direction.y = 0;
+        direction = direction.normalized;
 
-        speed = maxSpeed * 10;
-        rSpeed = 0f;
-        acceleration = 3000f;
-
-        while(dashedTime + dashTime > Time.time)
+        //ダッシュ
+        while(true)
         {
-            Debug.Log(velocity);
-            await Awaitable.NextFrameAsync();
-        }
+            float deltaDashLength = dashLength / dashTime * Time.fixedDeltaTime;
+            charConn.Move(deltaDashLength * direction);
+            dashedLength += deltaDashLength;
 
-        //スピード低減の時間
-        acceleration = 1000f;
-        while(velocity > maxSpeed)
-        {
-            Debug.Log(velocity);
-            await Awaitable.NextFrameAsync();
+            if(dashedLength >= dashLength)
+            {
+                charConn.Move(-direction * (dashedLength - dashLength));
+                break;
+            }
+
+            await Awaitable.FixedUpdateAsync();
         }
 
         //ダッシュ状態解除
-        speed = maxSpeed;
-        rSpeed = rMaxSpeed;
-        acceleration = acceleration_bef;
+        velocity = maxSpeed * 1.5f;
         isDash = false;
     }
 }

@@ -1,5 +1,7 @@
 using UnityEngine;
+using System;
 
+[RequireComponent(typeof(CharacterController), typeof(GarbageCounter))]
 public class Player : MonoBehaviour
 {
     [SerializeField]InputReader inputReader;
@@ -15,6 +17,14 @@ public class Player : MonoBehaviour
     [SerializeField]private LayerMask garbageLayer;
 
     [SerializeField]private float dashLength;
+    [SerializeField, Min(0f)] private float dashChargeTime = 0.2f;
+    [SerializeField] private Vector3 dashExpandedScale = new Vector3(10.5f, 1.7f, 1.5f);
+    [SerializeField, Min(1f)] private float dashInitialSpeedMultiplier = 1.5f;
+    [SerializeField, Min(0)] private float npcRadius = 2f;
+    [SerializeField] private LayerMask npcLayer;
+    private NPC nearbyNPC;
+    private bool isTalking;
+    public bool IsPaused => isPause;
     const float dashTime = 0.1f;
 
     CharacterController charConn;
@@ -30,25 +40,28 @@ public class Player : MonoBehaviour
 
     //プレイヤーの操作制御奪取用
     private bool isDash = false;
+    private bool isDashMoving;
 
     void Awake()
     {
         TryGetComponent(out charConn);
         TryGetComponent(out garbages);
 
-        inputReader.Dash += () => {Dash();};
+        inputReader.Dash += HandleDash;
+        inputReader.Interact += HandleInteract;
 
         speed = maxSpeed;
         rSpeed = rMaxSpeed;
+        SetModelScale(Vector3.one);
     }
 
     void FixedUpdate()
     {
+        if (isPause) return;
         if(!isDash)
         {
-            //インプットを取得(演出時は入力をキャンセル)
-            //滑って進む程度の距離の演出中の移動は許容するようにする
-            Vector2 moveInput = isPause? Vector2.zero: inputReader.GetMoveInput();
+            // 演出中はFixedUpdateの先頭で停止する。
+            Vector2 moveInput = inputReader.GetMoveInput();
 
             //目標角速度と目標値との差を算出
             float targetRVelocity = moveInput.x * rSpeed;
@@ -77,6 +90,8 @@ public class Player : MonoBehaviour
                 velocity += Mathf.Sign(diffVelocity) * acceleration * Time.fixedDeltaTime;
             }
 
+            UpdateDashScale();
+
             //移動方向への方向ベクトルを計算
             Vector3 direction = this.transform.forward;
             direction.y = 0;
@@ -90,7 +105,7 @@ public class Player : MonoBehaviour
             {
                 DrainGarbage();
             }
-        }else{
+        }else if(isDashMoving){
             //周囲のごみを拾得
             CollectGarbage();
         }
@@ -108,7 +123,7 @@ public class Player : MonoBehaviour
             Garbage result;
             if(results[i].TryGetComponent(out result))
             {
-                result.Drain();
+                if (result.Drain()) garbages.RecordCollection(result.Score);
             }
         }
     }
@@ -125,16 +140,23 @@ public class Player : MonoBehaviour
             Garbage result;
             if(results[i].TryGetComponent(out result))
             {
-                result.Collect(suctionPortPivot);
-                garbages.CountUp(1);
+                if (!result.IsCollected)
+                {
+                    CollectAsync(result);
+                    garbages.RecordCollection(result.Score);
+                }
             }
         }
     }
 
     async Awaitable Dash()
     {
+        if (!isActiveAndEnabled || isPause || isDash || dashLength <= 0) return;
         //ダッシュ状態設定
         isDash = true;
+        isDashMoving = false;
+        velocity = 0f;
+        rVelocity = 0f;
         garbages.CountDown(5);
 
         float dashedLength = 0f;
@@ -144,24 +166,125 @@ public class Player : MonoBehaviour
         direction.y = 0;
         direction = direction.normalized;
 
-        //ダッシュ
-        while(true)
+        try
         {
-            float deltaDashLength = dashLength / dashTime * Time.fixedDeltaTime;
-            charConn.Move(deltaDashLength * direction);
-            dashedLength += deltaDashLength;
-
-            if(dashedLength >= dashLength)
+            // 約0.2秒停止しながら、モデルをダッシュ用の大きさまで拡大する。
+            float chargedTime = 0f;
+            while (!isPause && isActiveAndEnabled && chargedTime < dashChargeTime)
             {
-                charConn.Move(-direction * (dashedLength - dashLength));
-                break;
+                await Awaitable.FixedUpdateAsync(destroyCancellationToken);
+                chargedTime += Time.fixedDeltaTime;
+                float rate = dashChargeTime <= 0f ? 1f : Mathf.Clamp01(chargedTime / dashChargeTime);
+                SetModelScale(Vector3.Lerp(Vector3.one, dashExpandedScale, rate));
             }
 
-            await Awaitable.FixedUpdateAsync();
-        }
+            if (isPause || !isActiveAndEnabled) return;
+            SetModelScale(dashExpandedScale);
 
-        //ダッシュ状態解除
-        velocity = maxSpeed * 1.5f;
-        isDash = false;
+            //ダッシュ
+            isDashMoving = true;
+            while(!isPause && isActiveAndEnabled)
+            {
+                float deltaDashLength = dashLength / dashTime * Time.fixedDeltaTime;
+                charConn.Move(deltaDashLength * direction);
+                dashedLength += deltaDashLength;
+
+                if(dashedLength >= dashLength)
+                {
+                    charConn.Move(-direction * (dashedLength - dashLength));
+                    break;
+                }
+
+                await Awaitable.FixedUpdateAsync(destroyCancellationToken);
+            }
+
+            //ダッシュ状態解除
+            velocity = isPause ? 0 : maxSpeed * dashInitialSpeedMultiplier;
+        }
+        finally
+        {
+            isDashMoving = false;
+            isDash = false;
+            if (isPause || !isActiveAndEnabled) SetModelScale(Vector3.one);
+        }
+    }
+
+    private void UpdateDashScale()
+    {
+        if (model == null) return;
+        float dashSpeed = maxSpeed * dashInitialSpeedMultiplier;
+        float rate = dashSpeed <= maxSpeed
+            ? 0f
+            : Mathf.InverseLerp(maxSpeed, dashSpeed, Mathf.Abs(velocity));
+        SetModelScale(Vector3.Lerp(Vector3.one, dashExpandedScale, rate));
+    }
+
+    private void SetModelScale(Vector3 scale)
+    {
+        if (model != null) model.localScale = scale;
+    }
+
+    public void SetPaused(bool paused)
+    {
+        isPause = paused;
+        if (paused)
+        {
+            velocity = 0;
+            rVelocity = 0;
+            isDashMoving = false;
+            SetModelScale(Vector3.one);
+            if (nearbyNPC != null) nearbyNPC.SetGuideEnable(false);
+        }
+    }
+
+    private async void HandleDash()
+    {
+        try { await Dash(); }
+        catch (OperationCanceledException) { }
+    }
+
+    private async void CollectAsync(Garbage garbage)
+    {
+        try { await garbage.Collect(suctionPortPivot); }
+        catch (OperationCanceledException) { }
+    }
+
+    private void Update()
+    {
+        if (isPause || isTalking) return;
+        NPC closest = null;
+        float distance = float.PositiveInfinity;
+        if (inputReader.IsActionEnabled(ActionType.Interact))
+        foreach (var hit in Physics.OverlapSphere(transform.position, npcRadius, npcLayer, QueryTriggerInteraction.Collide))
+        {
+            var npc = hit.GetComponentInParent<NPC>();
+            if (npc == null || !npc.isActiveAndEnabled) continue;
+            float candidate = (npc.transform.position - transform.position).sqrMagnitude;
+            if (candidate < distance) { closest = npc; distance = candidate; }
+        }
+        if (nearbyNPC != closest && nearbyNPC != null) nearbyNPC.SetGuideEnable(false);
+        nearbyNPC = closest;
+        if (nearbyNPC != null) nearbyNPC.SetGuideEnable(true);
+    }
+
+    private async void HandleInteract()
+    {
+        if (!isActiveAndEnabled || isPause || isTalking || isDash || nearbyNPC == null) return;
+        isTalking = true;
+        try { await nearbyNPC.Invoke(); }
+        catch (OperationCanceledException) { }
+        finally { isTalking = false; }
+    }
+
+    private void OnDisable()
+    {
+        if (nearbyNPC != null) nearbyNPC.SetGuideEnable(false);
+    }
+
+    private void OnDestroy()
+    {
+        if (inputReader == null) return;
+        inputReader.Dash -= HandleDash;
+        inputReader.Interact -= HandleInteract;
     }
 }

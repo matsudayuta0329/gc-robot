@@ -6,20 +6,31 @@ public class Garbage: MonoBehaviour
     const float collectAnimTime = 0.15f;
 
     //通常回収時のパラメータ
-    [SerializeField]private int collectCountMax = 1;
+    [SerializeField, Range(1, 3)]private int collectCountMax = 1;
     const float countDownInterval = 1f;
  
     private int collectCount = 1; 
-    private float lastDrainTime = 0f;
+    private float lastDrainTime = float.NegativeInfinity;
+    private bool isCollected;
+    public bool IsCollected => isCollected;
+    public int Score => Mathf.Clamp(collectCountMax, 1, 3);
 
     void Awake()
     {
-        collectCount = collectCountMax;
+        collectCount = Score;
     }
 
-    public void Drain()
+    public void Init(int size)
     {
-        if(lastDrainTime + countDownInterval <= Time.time)
+        collectCountMax = Mathf.Clamp(size, 1, 3);
+        collectCount = collectCountMax;
+        lastDrainTime = float.NegativeInfinity;
+        isCollected = false;
+    }
+
+    public bool Drain()
+    {
+        if(!isCollected && lastDrainTime + countDownInterval <= Time.time)
         {
             this.transform.localScale = this.transform.localScale * (collectCount - 1) / collectCount;
             lastDrainTime = Time.time;
@@ -27,17 +38,22 @@ public class Garbage: MonoBehaviour
 
             if(collectCount <= 0)
             {
+                isCollected = true;
                 Destroy(gameObject);
+                return true;
             }
         }
+        return false;
     }
 
     public async Awaitable Collect(Transform collecterTransform)
     {
+        if (isCollected) return;
+        isCollected = true;
         float collectedTime = Time.time;
         Vector3 collectedPos = this.transform.position;
 
-        while(collectedTime + collectAnimTime > Time.time)
+        while(collecterTransform != null && collectedTime + collectAnimTime > Time.time)
         {
             this.transform.position = Vector3.Lerp(
                 collectedPos, 
@@ -45,7 +61,7 @@ public class Garbage: MonoBehaviour
                 (Time.time - collectedTime) / collectAnimTime
             );
             
-            await Awaitable.FixedUpdateAsync();
+            await Awaitable.FixedUpdateAsync(destroyCancellationToken);
         }
 
         Destroy(gameObject);

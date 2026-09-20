@@ -20,6 +20,7 @@ public class Player : MonoBehaviour
     [SerializeField, Min(0f)] private float dashChargeTime = 0.2f;
     [SerializeField] private Vector3 dashExpandedScale = new Vector3(10.5f, 1.7f, 1.5f);
     [SerializeField, Min(1f)] private float dashInitialSpeedMultiplier = 1.5f;
+    [SerializeField, Min(0f)] private float dashCollisionMargin = 0.02f;
     [SerializeField, Min(0)] private float npcRadius = 2f;
     [SerializeField] private LayerMask npcLayer;
     private NPC nearbyNPC;
@@ -41,6 +42,7 @@ public class Player : MonoBehaviour
     //プレイヤーの操作制御奪取用
     private bool isDash = false;
     private bool isDashMoving;
+    private readonly RaycastHit[] dashHits = new RaycastHit[16];
 
     void Awake()
     {
@@ -183,15 +185,25 @@ public class Player : MonoBehaviour
 
             //ダッシュ
             isDashMoving = true;
+            bool wasBlocked = false;
             while(!isPause && isActiveAndEnabled)
             {
-                float deltaDashLength = dashLength / dashTime * Time.fixedDeltaTime;
-                charConn.Move(deltaDashLength * direction);
-                dashedLength += deltaDashLength;
+                float remainingLength = dashLength - dashedLength;
+                float requestedLength = Mathf.Min(
+                    dashLength / dashTime * Time.fixedDeltaTime,
+                    remainingLength);
+                float movableLength = GetDashMovableLength(direction, requestedLength, out wasBlocked);
 
-                if(dashedLength >= dashLength)
+                if (movableLength > 0f)
                 {
-                    charConn.Move(-direction * (dashedLength - dashLength));
+                    CollisionFlags collision = charConn.Move(direction * movableLength);
+                    dashedLength += movableLength;
+                    wasBlocked |= (collision & CollisionFlags.Sides) != 0;
+                }
+
+                // 壁への衝突時は、CharacterControllerによる大きな壁面スライドを続けない。
+                if(wasBlocked || dashedLength >= dashLength)
+                {
                     break;
                 }
 
@@ -199,7 +211,7 @@ public class Player : MonoBehaviour
             }
 
             //ダッシュ状態解除
-            velocity = isPause ? 0 : maxSpeed * dashInitialSpeedMultiplier;
+            velocity = isPause || wasBlocked ? 0 : maxSpeed * dashInitialSpeedMultiplier;
         }
         finally
         {
@@ -207,6 +219,45 @@ public class Player : MonoBehaviour
             isDash = false;
             if (isPause || !isActiveAndEnabled) SetModelScale(Vector3.one);
         }
+    }
+
+    private float GetDashMovableLength(Vector3 direction, float requestedLength, out bool blocked)
+    {
+        blocked = false;
+        if (requestedLength <= 0f) return 0f;
+
+        Vector3 scale = transform.lossyScale;
+        float radius = charConn.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+        float height = Mathf.Max(charConn.height * Mathf.Abs(scale.y), radius * 2f);
+        Vector3 center = transform.TransformPoint(charConn.center);
+        float segmentHalfLength = height * 0.5f - radius;
+        Vector3 top = center + transform.up * segmentHalfLength;
+        Vector3 bottom = center - transform.up * segmentHalfLength;
+        int hitCount = Physics.CapsuleCastNonAlloc(
+            top,
+            bottom,
+            radius,
+            direction,
+            dashHits,
+            requestedLength + charConn.skinWidth,
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore);
+
+        float nearestDistance = float.PositiveInfinity;
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider hitCollider = dashHits[i].collider;
+            if (hitCollider == null || hitCollider.transform.IsChildOf(transform)) continue;
+            nearestDistance = Mathf.Min(nearestDistance, dashHits[i].distance);
+        }
+
+        if (float.IsPositiveInfinity(nearestDistance)) return requestedLength;
+
+        blocked = true;
+        return Mathf.Clamp(
+            nearestDistance - charConn.skinWidth - dashCollisionMargin,
+            0f,
+            requestedLength);
     }
 
     private void UpdateDashScale()

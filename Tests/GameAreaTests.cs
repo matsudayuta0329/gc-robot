@@ -182,4 +182,36 @@ public class GameAreaTests
         yield return new WaitForSeconds(0.2f);
         Assert.Less(Vector3.Distance(model.localScale, Vector3.one), 0.01f);
     }
+
+    [UnityTest]
+    public IEnumerator DashStopsBeforeWallWithoutSlidingOrExitSpeed()
+    {
+        var input = Create("input").AddComponent<InputReader>();
+        var playerObject = Create("player", false);
+        var model = Create("model").transform;
+        model.SetParent(playerObject.transform);
+        var player = playerObject.AddComponent<Player>();
+        Set(player, "inputReader", input);
+        Set(player, "model", model);
+        Set(player, "pickupPivot", playerObject.transform);
+        Set(player, "suctionPortPivot", playerObject.transform);
+        Set(player, "dashLength", 15f);
+        Set(player, "dashChargeTime", 0f);
+        playerObject.SetActive(true);
+
+        var wall = Create("wall");
+        wall.transform.position = new Vector3(0f, 0.5f, 1.5f);
+        wall.transform.localScale = new Vector3(10f, 2f, 0.2f);
+        wall.AddComponent<BoxCollider>();
+        Physics.SyncTransforms();
+
+        var dash = typeof(Player).GetMethod("Dash", BindingFlags.Instance | BindingFlags.NonPublic);
+        dash.Invoke(player, null);
+        yield return new WaitForSeconds(0.15f);
+
+        Assert.Less(playerObject.transform.position.z, 1f);
+        Assert.Less(Mathf.Abs(playerObject.transform.position.x), 0.01f);
+        var velocity = typeof(Player).GetField("velocity", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That((float)velocity.GetValue(player), Is.EqualTo(0f).Within(0.001f));
+    }
 }

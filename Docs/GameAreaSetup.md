@@ -7,6 +7,7 @@ Unity 6000.3.9f1 / Input System / TextMeshProを使用。非同期処理はUnity
 
 1. Playerの既存参照（InputReader、Pickup Pivot、Suction Port Pivot、Garbage Layer等）を設定する。CharacterControllerとGarbageCounterが必要。
    Modelには拡縮する見た目のTransformを設定する。ダッシュ時は0.2秒停止し、(1,1,1)から(10.5,1.7,1.5)へ線形に拡大してから移動する。ダッシュ終了時の初速から通常最高速度へ戻る間に(1,1,1)まで線形に縮小する。値はPlayerのDash Charge Time、Dash Expanded Scale、Dash Initial Speed Multiplierで調整できる。
+   ModelにはCharacterControllerを持つPlayerルートではなく、見た目だけを含む子Transformを割り当てる。ダッシュは事前のCapsuleCastで壁までの安全距離に制限し、壁に当たった時点で終了する。壁との余白はDash Collision Marginで調整できる。
 2. GameManagerを空のGameObjectへ追加し、Player、同じInputReader、GarbageCounter、GameUI、ResultUIを設定する。GarbageCounterはPlayerから自動取得も可能。
 3. Trash ObjectsへルートにGarbageを持つプレハブとSize（回収回数・固有得点1〜3）を登録する。ColliderとPlayerのGarbage Layerに含まれるレイヤーも設定する。
 4. Limitは制限秒数、Spawn Intervalは生成間隔。Spawn Pointsからランダムに生成する。未設定の場合はGameManagerの位置。Trash Parentは任意。

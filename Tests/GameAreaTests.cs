@@ -214,4 +214,36 @@ public class GameAreaTests
         var velocity = typeof(Player).GetField("velocity", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.That((float)velocity.GetValue(player), Is.EqualTo(0f).Within(0.001f));
     }
+
+    [UnityTest]
+    public IEnumerator AngledDashUsesRemainingDistanceAlongWallWithoutRebound()
+    {
+        var input = Create("input").AddComponent<InputReader>();
+        var playerObject = Create("player", false);
+        playerObject.transform.rotation = Quaternion.Euler(0f, 45f, 0f);
+        var model = Create("model").transform;
+        model.SetParent(playerObject.transform);
+        var player = playerObject.AddComponent<Player>();
+        Set(player, "inputReader", input);
+        Set(player, "model", model);
+        Set(player, "pickupPivot", playerObject.transform);
+        Set(player, "suctionPortPivot", playerObject.transform);
+        Set(player, "dashLength", 15f);
+        Set(player, "dashChargeTime", 0f);
+        playerObject.SetActive(true);
+
+        var wall = Create("wall");
+        wall.transform.position = new Vector3(0f, 0.5f, 1.5f);
+        wall.transform.localScale = new Vector3(50f, 2f, 0.2f);
+        wall.AddComponent<BoxCollider>();
+        Physics.SyncTransforms();
+
+        var dash = typeof(Player).GetMethod("Dash", BindingFlags.Instance | BindingFlags.NonPublic);
+        dash.Invoke(player, null);
+        yield return new WaitForSeconds(0.2f);
+
+        Assert.Less(playerObject.transform.position.z, 1f);
+        Assert.Greater(playerObject.transform.position.x, 10f);
+        Assert.That(playerObject.transform.position.magnitude, Is.GreaterThan(13f));
+    }
 }

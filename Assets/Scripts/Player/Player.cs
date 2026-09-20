@@ -185,33 +185,43 @@ public class Player : MonoBehaviour
 
             //ダッシュ
             isDashMoving = true;
-            bool wasBlocked = false;
+            bool touchedWall = false;
             while(!isPause && isActiveAndEnabled)
             {
                 float remainingLength = dashLength - dashedLength;
                 float requestedLength = Mathf.Min(
                     dashLength / dashTime * Time.fixedDeltaTime,
                     remainingLength);
-                float movableLength = GetDashMovableLength(direction, requestedLength, out wasBlocked);
+                float movableLength = GetDashMovableLength(
+                    direction,
+                    requestedLength,
+                    out bool blocked,
+                    out Vector3 hitNormal);
 
                 if (movableLength > 0f)
                 {
                     CollisionFlags collision = charConn.Move(direction * movableLength);
                     dashedLength += movableLength;
-                    wasBlocked |= (collision & CollisionFlags.Sides) != 0;
+                    if ((collision & CollisionFlags.Sides) != 0 && !blocked) break;
                 }
 
-                // 壁への衝突時は、CharacterControllerによる大きな壁面スライドを続けない。
-                if(wasBlocked || dashedLength >= dashLength)
+                if (blocked)
                 {
-                    break;
+                    touchedWall = true;
+                    // 壁へ向かう成分だけを除き、残りのダッシュ距離を壁沿いに進む。
+                    Vector3 slideDirection = Vector3.ProjectOnPlane(direction, hitNormal);
+                    slideDirection.y = 0f;
+                    if (slideDirection.sqrMagnitude < 0.0001f) break;
+                    direction = slideDirection.normalized;
                 }
+
+                if(dashedLength >= dashLength) break;
 
                 await Awaitable.FixedUpdateAsync(destroyCancellationToken);
             }
 
             //ダッシュ状態解除
-            velocity = isPause || wasBlocked ? 0 : maxSpeed * dashInitialSpeedMultiplier;
+            velocity = isPause || touchedWall ? 0 : maxSpeed * dashInitialSpeedMultiplier;
         }
         finally
         {
@@ -221,9 +231,14 @@ public class Player : MonoBehaviour
         }
     }
 
-    private float GetDashMovableLength(Vector3 direction, float requestedLength, out bool blocked)
+    private float GetDashMovableLength(
+        Vector3 direction,
+        float requestedLength,
+        out bool blocked,
+        out Vector3 hitNormal)
     {
         blocked = false;
+        hitNormal = Vector3.zero;
         if (requestedLength <= 0f) return 0f;
 
         Vector3 scale = transform.lossyScale;
@@ -248,7 +263,11 @@ public class Player : MonoBehaviour
         {
             Collider hitCollider = dashHits[i].collider;
             if (hitCollider == null || hitCollider.transform.IsChildOf(transform)) continue;
-            nearestDistance = Mathf.Min(nearestDistance, dashHits[i].distance);
+            if (dashHits[i].distance < nearestDistance)
+            {
+                nearestDistance = dashHits[i].distance;
+                hitNormal = dashHits[i].normal;
+            }
         }
 
         if (float.IsPositiveInfinity(nearestDistance)) return requestedLength;

@@ -240,10 +240,17 @@ public class GameAreaTests
 
         var dash = typeof(Player).GetMethod("Dash", BindingFlags.Instance | BindingFlags.NonPublic);
         dash.Invoke(player, null);
-        yield return new WaitForSeconds(0.2f);
+        yield return new WaitForSeconds(0.14f);
+
+        float positionAtDashEnd = playerObject.transform.position.x;
+        var velocity = typeof(Player).GetField("velocity", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.Greater((float)velocity.GetValue(player), 0f);
+
+        yield return new WaitForSeconds(0.1f);
 
         Assert.Less(playerObject.transform.position.z, 1f);
         Assert.Greater(playerObject.transform.position.x, 10f);
         Assert.That(playerObject.transform.position.magnitude, Is.GreaterThan(13f));
+        Assert.Greater(playerObject.transform.position.x, positionAtDashEnd);
     }
 }

@@ -42,6 +42,8 @@ public class Player : MonoBehaviour
     //プレイヤーの操作制御奪取用
     private bool isDash = false;
     private bool isDashMoving;
+    private bool isDashExitSliding;
+    private Vector3 dashExitDirection;
     private readonly RaycastHit[] dashHits = new RaycastHit[16];
 
     void Awake()
@@ -94,8 +96,15 @@ public class Player : MonoBehaviour
 
             UpdateDashScale();
 
-            //移動方向への方向ベクトルを計算
+            // ダッシュ後の余速は、通常入力の速度まで減速する間だけ最後のダッシュ方向を保つ。
             Vector3 direction = this.transform.forward;
+            if (isDashExitSliding)
+            {
+                if (Mathf.Abs(velocity) > Mathf.Abs(targetVelocity) + 0.001f)
+                    direction = dashExitDirection;
+                else
+                    isDashExitSliding = false;
+            }
             direction.y = 0;
             direction = direction.normalized;
 
@@ -186,6 +195,7 @@ public class Player : MonoBehaviour
             //ダッシュ
             isDashMoving = true;
             bool touchedWall = false;
+            bool canGlideAfterDash = true;
             while(!isPause && isActiveAndEnabled)
             {
                 float remainingLength = dashLength - dashedLength;
@@ -211,7 +221,11 @@ public class Player : MonoBehaviour
                     // 壁へ向かう成分だけを除き、残りのダッシュ距離を壁沿いに進む。
                     Vector3 slideDirection = Vector3.ProjectOnPlane(direction, hitNormal);
                     slideDirection.y = 0f;
-                    if (slideDirection.sqrMagnitude < 0.0001f) break;
+                    if (slideDirection.sqrMagnitude < 0.0001f)
+                    {
+                        canGlideAfterDash = false;
+                        break;
+                    }
                     direction = slideDirection.normalized;
                 }
 
@@ -221,7 +235,9 @@ public class Player : MonoBehaviour
             }
 
             //ダッシュ状態解除
-            velocity = isPause || touchedWall ? 0 : maxSpeed * dashInitialSpeedMultiplier;
+            velocity = isPause || !canGlideAfterDash ? 0 : maxSpeed * dashInitialSpeedMultiplier;
+            isDashExitSliding = !isPause && touchedWall && canGlideAfterDash;
+            if (isDashExitSliding) dashExitDirection = direction;
         }
         finally
         {
@@ -302,6 +318,7 @@ public class Player : MonoBehaviour
             velocity = 0;
             rVelocity = 0;
             isDashMoving = false;
+            isDashExitSliding = false;
             SetModelScale(Vector3.one);
             if (nearbyNPC != null) nearbyNPC.SetGuideEnable(false);
         }

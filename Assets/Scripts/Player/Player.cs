@@ -196,6 +196,7 @@ public class Player : MonoBehaviour
             isDashMoving = true;
             bool touchedWall = false;
             bool canGlideAfterDash = true;
+            Vector3 exitDirection = direction;
             while(!isPause && isActiveAndEnabled)
             {
                 float remainingLength = dashLength - dashedLength;
@@ -208,28 +209,35 @@ public class Player : MonoBehaviour
                     out bool blocked,
                     out Vector3 hitNormal);
 
+                Vector3 moveAmount = Vector3.zero;
                 if (movableLength > 0f)
                 {
-                    CollisionFlags collision = charConn.Move(direction * movableLength);
-                    if ((collision & CollisionFlags.Sides) != 0 && !blocked) break;
+                    moveAmount = direction * movableLength;
                 }
-
-                // 壁で実移動量が減っても、予定していた距離分だけダッシュを消費する。
-                dashedLength += requestedLength;
 
                 if (blocked)
                 {
                     touchedWall = true;
                     // 壁へ向かう成分だけを除き、残りのダッシュ距離を壁沿いに進む。
-                    Vector3 slideDirection = Vector3.ProjectOnPlane(direction, hitNormal);
-                    slideDirection.y = 0f;
-                    if (slideDirection.sqrMagnitude < 0.0001f)
+                    Vector3 slideAmount = Vector3.ProjectOnPlane(direction * (requestedLength - movableLength), hitNormal);
+                    slideAmount.y = 0f;
+                    if (slideAmount.sqrMagnitude < 0.0001f)
                     {
                         canGlideAfterDash = false;
                         break;
                     }
-                    direction = slideDirection.normalized;
+
+                    moveAmount += slideAmount;
+                    exitDirection = slideAmount.normalized;
                 }
+
+                if(moveAmount.sqrMagnitude > 0.0001f)
+                {
+                    CollisionFlags collision = charConn.Move(moveAmount);
+                }
+
+                // 壁で実移動量が減っても、予定していた距離分だけダッシュを消費する。
+                dashedLength += requestedLength;
 
                 if(dashedLength >= dashLength) break;
 
@@ -239,7 +247,7 @@ public class Player : MonoBehaviour
             //ダッシュ状態解除
             velocity = isPause || !canGlideAfterDash ? 0 : maxSpeed * dashInitialSpeedMultiplier;
             isDashExitSliding = !isPause && touchedWall && canGlideAfterDash;
-            if (isDashExitSliding) dashExitDirection = direction;
+            if (isDashExitSliding) dashExitDirection = exitDirection;
         }
         finally
         {

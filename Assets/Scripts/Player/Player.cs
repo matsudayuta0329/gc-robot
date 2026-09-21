@@ -218,22 +218,26 @@ public class Player : MonoBehaviour
                 if (blocked)
                 {
                     touchedWall = true;
-                    // 壁へ向かう成分だけを除き、残りのダッシュ距離を壁沿いに進む。
-                    Vector3 slideAmount = Vector3.ProjectOnPlane(direction * (requestedLength - movableLength), hitNormal);
-                    slideAmount.y = 0f;
-                    if (slideAmount.sqrMagnitude < 0.0001f)
+                    // 正面衝突の判定には残り距離ではなく、進行方向の接線成分を使う。
+                    Vector3 slideDirection = Vector3.ProjectOnPlane(direction, hitNormal);
+                    slideDirection.y = 0f;
+                    if (slideDirection.sqrMagnitude < 0.0001f)
                     {
                         canGlideAfterDash = false;
                         break;
                     }
 
+                    Vector3 slideAmount = Vector3.ProjectOnPlane(
+                        direction * (requestedLength - movableLength),
+                        hitNormal);
+                    slideAmount.y = 0f;
                     moveAmount += slideAmount;
-                    exitDirection = slideAmount.normalized;
+                    exitDirection = slideDirection.normalized;
                 }
 
                 if(moveAmount.sqrMagnitude > 0.0001f)
                 {
-                    CollisionFlags collision = charConn.Move(moveAmount);
+                    charConn.Move(moveAmount);
                 }
 
                 // 壁で実移動量が減っても、予定していた距離分だけダッシュを消費する。

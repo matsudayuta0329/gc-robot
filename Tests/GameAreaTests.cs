@@ -284,7 +284,8 @@ public class GameAreaTests
         playerObject.SetActive(true);
 
         var wall = Create("wall");
-        wall.transform.position = new Vector3(0f, 0.5f, 1.5f);
+        // 最初の物理フレームの終端近くで接触させ、残り移動量が極小でも余速が残ることを確認する。
+        wall.transform.position = new Vector3(0f, 0.5f, 3.489f);
         wall.transform.localScale = new Vector3(50f, 2f, 0.2f);
         wall.AddComponent<BoxCollider>();
         Physics.SyncTransforms();
@@ -303,6 +304,6 @@ public class GameAreaTests
         yield return new WaitForSeconds(0.1f);
 
         Assert.Greater(playerObject.transform.position.x, positionAtDashEnd);
-        Assert.Less(playerObject.transform.position.z, 1f);
+        Assert.Less(playerObject.transform.position.z, 3f);
     }
 }

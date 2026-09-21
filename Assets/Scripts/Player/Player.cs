@@ -211,9 +211,11 @@ public class Player : MonoBehaviour
                 if (movableLength > 0f)
                 {
                     CollisionFlags collision = charConn.Move(direction * movableLength);
-                    dashedLength += movableLength;
                     if ((collision & CollisionFlags.Sides) != 0 && !blocked) break;
                 }
+
+                // 壁で実移動量が減っても、予定していた距離分だけダッシュを消費する。
+                dashedLength += requestedLength;
 
                 if (blocked)
                 {

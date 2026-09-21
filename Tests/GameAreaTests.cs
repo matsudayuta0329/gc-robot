@@ -119,6 +119,10 @@ public class GameAreaTests
         var result = Create("result").AddComponent<ResultUI>();
         var prefab = Create("trashPrefab").AddComponent<Garbage>();
         var parent = Create("trashParent");
+        var minSpawnPoint = Create("minSpawnPoint").transform;
+        var maxSpawnPoint = Create("maxSpawnPoint").transform;
+        minSpawnPoint.position = new Vector3(-1f, 0f, -1f);
+        maxSpawnPoint.position = new Vector3(1f, 0f, 1f);
         var managerObject = Create("manager", false);
         var manager = managerObject.AddComponent<GameManager>();
         Set(manager, "player", player);
@@ -128,6 +132,8 @@ public class GameAreaTests
         Set(manager, "limit", 0.08f);
         Set(manager, "spawnInterval", 0.02f);
         Set(manager, "trashParent", parent.transform);
+        Set(manager, "minSpawnPoint", minSpawnPoint);
+        Set(manager, "maxSpawnPoint", maxSpawnPoint);
         Set(manager, "trashObjects", new List<GameManager.TrashEntry> {
             new GameManager.TrashEntry { trashObject = prefab.gameObject, Size = 3 }
         });
@@ -240,17 +246,21 @@ public class GameAreaTests
 
         var dash = typeof(Player).GetMethod("Dash", BindingFlags.Instance | BindingFlags.NonPublic);
         dash.Invoke(player, null);
-        yield return new WaitForSeconds(0.14f);
+        var isDash = typeof(Player).GetField("isDash", BindingFlags.Instance | BindingFlags.NonPublic);
+        yield return new WaitUntil(() => !(bool)isDash.GetValue(player));
 
         float positionAtDashEnd = playerObject.transform.position.x;
+        float distanceAtDashEnd = playerObject.transform.position.magnitude;
         var velocity = typeof(Player).GetField("velocity", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.Greater((float)velocity.GetValue(player), 0f);
+        // 壁へ向かった未移動分もダッシュ距離として消費するため、実移動は15未満になる。
+        Assert.That(distanceAtDashEnd, Is.GreaterThan(12f));
+        Assert.That(distanceAtDashEnd, Is.LessThan(15f));
 
         yield return new WaitForSeconds(0.1f);
 
         Assert.Less(playerObject.transform.position.z, 1f);
         Assert.Greater(playerObject.transform.position.x, 10f);
-        Assert.That(playerObject.transform.position.magnitude, Is.GreaterThan(13f));
         Assert.Greater(playerObject.transform.position.x, positionAtDashEnd);
     }
 }

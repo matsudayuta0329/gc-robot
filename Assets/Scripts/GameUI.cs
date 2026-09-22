@@ -6,9 +6,7 @@ public class GameUI : AnimatedUIElement
     [SerializeField] private TMP_Text timeText;
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private TMP_Text countText;
-    [SerializeField] private TrashCount trashCount;
     [SerializeField] private OperationGuideUI operationGuide;
-    public TrashCount TrashCount => trashCount;
     public OperationGuideUI OperationGuide => operationGuide;
 
     public void SetTime(float seconds)
@@ -24,6 +22,5 @@ public class GameUI : AnimatedUIElement
     public void SetTrashNum(int count)
     {
         if (countText != null) countText.text = count.ToString();
-        if (trashCount != null) trashCount.SetTrashNum(count);
     }
 }

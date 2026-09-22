@@ -17,7 +17,7 @@ Unity 6000.3.9f1 / Input System / TextMeshProを使用。非同期処理はUnity
 
 開始演出中は操作停止 → 操作開始とごみ生成 → 時間切れで操作停止 → リザルト表示・GameUI非表示 → 続けるボタン → 終了演出 → ロビーへ移動。
 スコアは各ごみの固有得点の合計。既存のダッシュ消費（所持数から5減算、所持数が不足していても実行可）は維持している。
-TrashCount.SetTrashNumは指定どおり空関数。実際のゲーム中の個数表示はGameUI.Count Textを使用する。
+ごみ数はGameUIがCount Text（TMP）を直接更新する。TrashCountコンポーネントは使用しない。
 
 ## UI共通
 
@@ -49,7 +49,7 @@ TitleManagerにはCredits、Start Button、Animator、Tutorial Sceneを設定。
 Start Buttonは自動接続。Animator使用時は開始演出のAnimation EventでStartGameを呼ぶ。Animatorなしなら即移動。
 
 TutorialManagerにはTutorialUI、InputReader、Player、Lobby Sceneと順番どおりのTutorial Dataを設定。
-TutorialUIにはMessageWindow、TrashCount、OperationGuideUIを設定する。
+TutorialUIにはMessageWindow、Trash Count Text（TMP）、OperationGuideUIを設定する。
 OperationGuideUIにはMessage Text（TMP）と各ActionTypeのガイドGameObjectを登録する。
 会話中は操作とガイドを全停止。進むボタンで全文表示、その次の押下で次の項目へ進む。
 操作体験はMoveと対象操作を有効化し、対応する入力を実行すると完了する。外部の体験完了判定からAdvanceを呼ぶこともできる。

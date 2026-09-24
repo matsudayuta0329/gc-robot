@@ -6,11 +6,10 @@ public class Garbage: MonoBehaviour
     const float collectAnimTime = 0.15f;
 
     //通常回収時のパラメータ
-    [SerializeField, Range(1, 3)]private int collectCountMax = 1;
-    const float countDownInterval = 1f;
+    private int collectCountMax = 1;
+    const float countDownMag = 0.8f;
  
-    private int collectCount = 1; 
-    private float lastDrainTime = float.NegativeInfinity;
+    private float collectCount = 1; 
     private bool isCollected;
     public bool IsCollected => isCollected;
     public int Score => Mathf.Clamp(collectCountMax, 1, 3);
@@ -23,23 +22,19 @@ public class Garbage: MonoBehaviour
     public void Init(int size)
     {
         collectCountMax = Mathf.Clamp(size, 1, 3);
-        collectCount = collectCountMax;
-        lastDrainTime = float.NegativeInfinity;
+        collectCount = (float)collectCountMax;
         isCollected = false;
     }
 
     public bool Drain()
     {
-        if(!isCollected && lastDrainTime + countDownInterval <= Time.time)
+        if(!isCollected)
         {
-            this.transform.localScale = this.transform.localScale * (collectCount - 1) / collectCount;
-            lastDrainTime = Time.time;
-            collectCount--;
+            this.transform.localScale = this.transform.localScale * (collectCount - Time.deltaTime * countDownMag) / collectCount;
+            collectCount -= Time.deltaTime * countDownMag;
 
-            if(collectCount <= 0)
+            if(collectCount / collectCountMax <= 0.5f)
             {
-                isCollected = true;
-                Destroy(gameObject);
                 return true;
             }
         }

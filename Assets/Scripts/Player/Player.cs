@@ -134,7 +134,14 @@ public class Player : MonoBehaviour
             Garbage result;
             if(results[i].TryGetComponent(out result))
             {
-                if (result.Drain()) garbages.RecordCollection(result.Score);
+                if (!result.IsCollected)
+                {
+                    if(result.Drain())
+                    {
+                        CollectAsync(result);
+                        garbages.RecordCollection(result.Score);
+                    }
+                }
             }
         }
     }

@@ -15,7 +15,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private List<TrashEntry> trashObjects = new List<TrashEntry>();
     [SerializeField, Min(0)] private float limit = 60f;
     [SerializeField, Min(0.01f)] private float spawnInterval = 1f;
-    [SerializeField] private Transform[] spawnPoints;
+    [SerializeField, Range(1, 100)]private int maxGenCount = 15;
+    [SerializeField] private Transform maxSpawnPoint;
+    [SerializeField] private Transform minSpawnPoint;
     [SerializeField] private Transform trashParent;
     [SerializeField] private Player player;
     [SerializeField] private InputReader inputReader;
@@ -51,7 +53,6 @@ public class GameManager : MonoBehaviour
                 Debug.LogWarning("GameManager: Garbageのないごみ設定をスキップしました。", this);
         }
         garbageCounter.OnUpdateCount += gameUI.SetTrashNum;
-        garbageCounter.OnUpdateScore += gameUI.SetScore;
         try
         {
             resultUI.Disable();
@@ -64,11 +65,14 @@ public class GameManager : MonoBehaviour
             inputReader.SetEnableAction(new[] { ActionType.Move, ActionType.Dash, ActionType.Vacuum, ActionType.Look });
             IsPlaying = true;
             float nextSpawn = 0;
+
             while (RemainingTime > 0)
             {
                 if (nextSpawn <= 0)
                 {
-                    SpawnTrash();
+                    if(trashParent.childCount <= maxGenCount)
+                        SpawnTrash();
+
                     nextSpawn = Mathf.Max(0.01f, spawnInterval);
                 }
                 await Awaitable.NextFrameAsync(destroyCancellationToken);
@@ -79,7 +83,7 @@ public class GameManager : MonoBehaviour
             IsPlaying = false;
             player.SetPaused(true);
             inputReader.SetEnableAction(Array.Empty<ActionType>());
-            resultUI.Init(garbageCounter.Score, garbageCounter.CollectedCount);
+            resultUI.Init(garbageCounter.CollectedCount);
             resultUI.Enable();
             gameUI.Disable();
             await WaitRealtime(Mathf.Max(gameUI.DisableDuration, resultUI.EnableDuration));
@@ -103,10 +107,13 @@ public class GameManager : MonoBehaviour
     {
         if (validTrash.Count == 0) return;
         var entry = validTrash[UnityEngine.Random.Range(0, validTrash.Count)];
-        Transform point = spawnPoints != null && spawnPoints.Length > 0
-            ? spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Length)] : transform;
-        if (point == null) point = transform;
-        var instance = Instantiate(entry.trashObject, point.position, point.rotation, trashParent);
+        Vector3 spawnPoint = new Vector3(
+                Mathf.Lerp(maxSpawnPoint.position.x, minSpawnPoint.position.x, UnityEngine.Random.value),
+                minSpawnPoint.position.y,
+                Mathf.Lerp(maxSpawnPoint.position.z, minSpawnPoint.position.z, UnityEngine.Random.value)
+            );
+
+        var instance = Instantiate(entry.trashObject, spawnPoint, Quaternion.identity, trashParent);
         instance.GetComponent<Garbage>().Init(entry.Size);
         spawnedTrash.RemoveAll(item => item == null);
         spawnedTrash.Add(instance);
@@ -124,7 +131,6 @@ public class GameManager : MonoBehaviour
         if (garbageCounter != null && gameUI != null)
         {
             garbageCounter.OnUpdateCount -= gameUI.SetTrashNum;
-            garbageCounter.OnUpdateScore -= gameUI.SetScore;
         }
         foreach (var trash in spawnedTrash)
             if (trash != null) Destroy(trash);

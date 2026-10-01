@@ -77,3 +77,12 @@ MessageWindow、TrashCount、OperationGuideをシリアライズ変数として�
 
 
 ### ゲームエリア
+
+- #### Player
+Unityのライフサイクルに合わせて入力イベントを登録し、移動・ダッシュ・ごみ回収・NPC操作を実行する。`PlayerMovement`と`PickupGarbage`の生成およびパラメータの受け渡しも担当する。
+
+- #### PlayerMovement
+通常移動、旋回、ダッシュ、壁に接触したときのスライド、ダッシュ後の余速とモデルの拡縮を担当する。
+
+- #### PickupGarbage
+吸引中またはダッシュ中に範囲内のごみを検出して回収し、回収数と得点を`GarbageCounter`へ記録する。吸引中のマテリアル演出も担当する。

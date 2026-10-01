@@ -27,6 +27,11 @@ public class GameAreaTests
         }
         throw new MissingFieldException(name);
     }
+    private static PlayerMovement GetMovement(Player player)
+    {
+        var field = typeof(Player).GetField("movement", BindingFlags.Instance | BindingFlags.NonPublic);
+        return (PlayerMovement)field.GetValue(player);
+    }
     [UnityTearDown]
     public IEnumerator Cleanup()
     {
@@ -51,35 +56,30 @@ public class GameAreaTests
         CollectionAssert.AreEquivalent(new[] { ActionType.Move }, input.GetEnabledActions());
     }
     [Test]
-    public void ScoreAndTotalSurviveDashConsumption()
+    public void CollectionCountSurvivesDashConsumption()
     {
         var counter = Create("counter").AddComponent<GarbageCounter>();
         counter.RecordCollection(1);
         counter.RecordCollection(3);
         counter.CountDown(5);
-        Assert.AreEqual(4, counter.Score);
         Assert.AreEqual(2, counter.CollectedCount);
-        Assert.AreEqual(-3, counter.count); // Existing dash cost behavior is retained.
+        Assert.AreEqual(-1, counter.count); // Existing dash cost behavior is retained.
         counter.ResetCount();
-        Assert.AreEqual(0, counter.Score);
         Assert.AreEqual(0, counter.CollectedCount);
         Assert.AreEqual(0, counter.count);
     }
     [UnityTest]
-    public IEnumerator DrainHonorsSizeIntervalAndOnlyFinishesOnce()
+    public IEnumerator DrainUsesSizeAndHalfThreshold()
     {
         var garbage = Create("garbage").AddComponent<Garbage>();
         garbage.Init(3);
         Assert.IsFalse(garbage.Drain());
-        Assert.IsFalse(garbage.Drain()); // Same-frame drain must not count twice.
-        Set(garbage, "lastDrainTime", float.NegativeInfinity);
+        Set(garbage, "collectCount", 1.6f);
         Assert.IsFalse(garbage.Drain());
-        Set(garbage, "lastDrainTime", float.NegativeInfinity);
+        Set(garbage, "collectCount", 1.5f);
         Assert.IsTrue(garbage.Drain());
-        Assert.IsFalse(garbage.Drain());
         Assert.AreEqual(3, garbage.Score);
         yield return null;
-        Assert.IsTrue(garbage == null);
     }
     [UnityTest]
     public IEnumerator CollectionClaimsGarbageBeforeAnimationCompletes()
@@ -93,6 +93,26 @@ public class GameAreaTests
         Assert.IsFalse(garbage.Drain());
         yield return new WaitForSeconds(0.25f);
         Assert.IsTrue(finished);
+        Assert.IsTrue(garbage == null);
+    }
+    [UnityTest]
+    public IEnumerator PickupGarbageCollectsAndRecordsDashPickup()
+    {
+        var garbageObject = Create("garbage");
+        garbageObject.AddComponent<SphereCollider>();
+        var garbage = garbageObject.AddComponent<Garbage>();
+        garbage.Init(3);
+        var target = Create("target").transform;
+        var counter = Create("counter").AddComponent<GarbageCounter>();
+        var pickup = new PickupGarbage(target, garbageObject.transform, 1f, ~0, null, counter);
+        Physics.SyncTransforms();
+
+        pickup.CollectNearby();
+
+        Assert.IsTrue(garbage.IsCollected);
+        Assert.AreEqual(3, counter.count);
+        Assert.AreEqual(1, counter.CollectedCount);
+        yield return new WaitForSeconds(0.2f);
         Assert.IsTrue(garbage == null);
     }
     [UnityTest]
@@ -217,8 +237,7 @@ public class GameAreaTests
 
         Assert.Less(playerObject.transform.position.z, 1f);
         Assert.Less(Mathf.Abs(playerObject.transform.position.x), 0.01f);
-        var velocity = typeof(Player).GetField("velocity", BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.That((float)velocity.GetValue(player), Is.EqualTo(0f).Within(0.001f));
+        Assert.That(GetMovement(player).Velocity, Is.EqualTo(0f).Within(0.001f));
     }
 
     [UnityTest]
@@ -246,15 +265,13 @@ public class GameAreaTests
 
         var dash = typeof(Player).GetMethod("Dash", BindingFlags.Instance | BindingFlags.NonPublic);
         dash.Invoke(player, null);
-        var isDash = typeof(Player).GetField("isDash", BindingFlags.Instance | BindingFlags.NonPublic);
-        yield return new WaitUntil(() => !(bool)isDash.GetValue(player));
+        var movement = GetMovement(player);
+        yield return new WaitUntil(() => !movement.IsDashing);
 
         float positionAtDashEnd = playerObject.transform.position.x;
         float distanceAtDashEnd = playerObject.transform.position.magnitude;
-        var velocity = typeof(Player).GetField("velocity", BindingFlags.Instance | BindingFlags.NonPublic);
-        var exitDirection = typeof(Player).GetField("dashExitDirection", BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.Greater((float)velocity.GetValue(player), 0f);
-        Assert.Less(Mathf.Abs(((Vector3)exitDirection.GetValue(player)).z), 0.01f);
+        Assert.Greater(movement.Velocity, 0f);
+        Assert.Less(Mathf.Abs(movement.DashExitDirection.z), 0.01f);
         // 壁へ向かった未移動分もダッシュ距離として消費するため、実移動は15未満になる。
         Assert.That(distanceAtDashEnd, Is.GreaterThan(9f));
         Assert.That(distanceAtDashEnd, Is.LessThan(15f));
@@ -291,12 +308,11 @@ public class GameAreaTests
         Physics.SyncTransforms();
 
         var dash = typeof(Player).GetMethod("Dash", BindingFlags.Instance | BindingFlags.NonPublic);
-        var isDash = typeof(Player).GetField("isDash", BindingFlags.Instance | BindingFlags.NonPublic);
-        var exitDirection = typeof(Player).GetField("dashExitDirection", BindingFlags.Instance | BindingFlags.NonPublic);
         dash.Invoke(player, null);
-        yield return new WaitUntil(() => !(bool)isDash.GetValue(player));
+        var movement = GetMovement(player);
+        yield return new WaitUntil(() => !movement.IsDashing);
 
-        Vector3 storedDirection = (Vector3)exitDirection.GetValue(player);
+        Vector3 storedDirection = movement.DashExitDirection;
         Assert.Greater(storedDirection.x, 0.99f);
         Assert.Less(Mathf.Abs(storedDirection.z), 0.01f);
         float positionAtDashEnd = playerObject.transform.position.x;

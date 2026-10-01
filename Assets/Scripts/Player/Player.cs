@@ -15,6 +15,7 @@ public class Player : MonoBehaviour
     [SerializeField]private Transform pickupPivot;
     [SerializeField]private float pickupRadius;
     [SerializeField]private LayerMask garbageLayer;
+    [SerializeField]private Material garbageMaterial;
 
     [SerializeField]private float dashLength;
     [SerializeField, Min(0f)] private float dashChargeTime = 0.2f;
@@ -114,7 +115,11 @@ public class Player : MonoBehaviour
             //正面のごみを拾得
             if(inputReader.GetIsCollect())
             {
+                garbageMaterial.SetFloat("_DisplacementIntensity", 1);
+                garbageMaterial.SetVector("_TargetPos", pickupPivot.position);
                 DrainGarbage();
+            }else{
+                garbageMaterial.SetFloat("_DisplacementIntensity", 0);
             }
         }else if(isDashMoving){
             //周囲のごみを拾得

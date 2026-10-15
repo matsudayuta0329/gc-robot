@@ -64,6 +64,8 @@ public class TutorialManager : MonoBehaviour
             }
             inputReader.SetEnableAction(Array.Empty<ActionType>());
             if (player != null) player.SetPaused(true);
+            presenter.Message.Hide();
+            presenter.Guide.Hide();
             await uiParent.FinishAsync(destroyCancellationToken);
             if (!string.IsNullOrWhiteSpace(lobbyScene)) await SceneManager.LoadSceneAsync(lobbyScene);
         }

@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class GameUI : AnimatedUIElement
 {
+    private GameUIPresenter presenter;
+    public GameUIPresenter Presenter => presenter ??= new GameUIPresenter(this);
     [SerializeField] private TMP_Text timeText;
     [SerializeField] private TMP_Text countText;
 

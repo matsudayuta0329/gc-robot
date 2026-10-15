@@ -119,7 +119,6 @@ public class GameAreaTests
     public IEnumerator EnablingCancelsPendingHide()
     {
         var ui = Create("ui").AddComponent<GameUI>();
-        Set(ui, "disableDuration", 0.05f);
         ui.Disable();
         ui.Enable();
         yield return new WaitForSecondsRealtime(0.1f);
@@ -137,6 +136,9 @@ public class GameAreaTests
         playerObject.SetActive(true);
         var ui = Create("gameUI").AddComponent<GameUI>();
         var result = Create("result").AddComponent<ResultUI>();
+        var uiParent = Create("uiParent").AddComponent<UIParent>();
+        Set(uiParent, "elements", new List<AnimatedUIElement> { ui });
+        Set(uiParent, "resultUI", result);
         var prefab = Create("trashPrefab").AddComponent<Garbage>();
         var parent = Create("trashParent");
         var minSpawnPoint = Create("minSpawnPoint").transform;
@@ -149,6 +151,7 @@ public class GameAreaTests
         Set(manager, "inputReader", input);
         Set(manager, "gameUI", ui);
         Set(manager, "resultUI", result);
+        Set(manager, "uiParent", uiParent);
         Set(manager, "limit", 0.08f);
         Set(manager, "spawnInterval", 0.02f);
         Set(manager, "trashParent", parent.transform);

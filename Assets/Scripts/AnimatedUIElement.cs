@@ -1,51 +1,105 @@
 using System;
+using System.Threading;
 using UnityEngine;
 
 public class AnimatedUIElement : MonoBehaviour, IUIElement
 {
     [SerializeField] private GameObject root;
     [SerializeField] private Animator animator;
-    [SerializeField] private string enableTrigger = "Enable";
-    [SerializeField] private string disableTrigger = "Disable";
-    [SerializeField, Min(0)] private float enableDuration;
-    [SerializeField, Min(0)] private float disableDuration;
-    private int transition;
+    [SerializeField] private CanvasGroup canvasGroup;
+    [SerializeField, Min(1)] private float animationTimeout = 30f;
+    private int version;
+    private bool enabling;
+    private bool disabling;
+    public bool IsVisible { get; private set; }
+    protected GameObject Root => root != null ? root : gameObject;
+    private bool HasAnimator => animator != null && animator.runtimeAnimatorController != null;
 
-    public float EnableDuration => enableDuration;
-    public float DisableDuration => disableDuration;
-    private GameObject Root => root != null ? root : gameObject;
+    public virtual void PrepareEnable()
+    {
+        version++;
+        enabling = disabling = false;
+        IsVisible = false;
+        Root.SetActive(true);
+        SetInteraction(false);
+        if (HasAnimator)
+        {
+            animator.updateMode = AnimatorUpdateMode.UnscaledTime;
+            animator.ResetTrigger("enable");
+            animator.ResetTrigger("disable");
+            animator.Play("Base Layer.BedoreEnable", 0, 0f);
+            // 初回描画より前にEnableの先頭姿勢を評価する。
+            animator.Update(0f);
+        }
+        else if (canvasGroup != null) canvasGroup.alpha = 0f;
+    }
 
     public virtual void Enable()
     {
-        transition++;
-        Root.SetActive(true);
-        Trigger(enableTrigger, disableTrigger);
+        if (IsVisible && !disabling) return;
+        PrepareEnable();
+        IsVisible = true;
+        enabling = true;
+        if (HasAnimator) animator.SetTrigger("enable");
+        else
+        {
+            if (canvasGroup != null) canvasGroup.alpha = 1f;
+            CompleteEnable();
+        }
     }
 
     public virtual void Disable()
     {
-        int version = ++transition;
+        if (disabling) return;
+        version++;
+        enabling = false;
+        IsVisible = false;
+        SetInteraction(false);
         if (!Root.activeSelf) return;
-        Trigger(disableTrigger, enableTrigger);
-        HideAfterAnimation(version);
-    }
-
-    private void Trigger(string trigger, string reset)
-    {
-        if (animator == null || !animator.isActiveAndEnabled) return;
-        if (!string.IsNullOrEmpty(reset)) animator.ResetTrigger(reset);
-        if (!string.IsNullOrEmpty(trigger)) animator.SetTrigger(trigger);
-    }
-
-    private async void HideAfterAnimation(int version)
-    {
-        try
+        disabling = true;
+        if (HasAnimator)
         {
-            float end = Time.unscaledTime + disableDuration;
-            while (Time.unscaledTime < end)
-                await Awaitable.NextFrameAsync(destroyCancellationToken);
-            if (version == transition) Root.SetActive(false);
+            animator.ResetTrigger("enable");
+            animator.SetTrigger("disable");
         }
-        catch (OperationCanceledException) { }
+        else CompleteDisable();
+    }
+
+    // Animatorと同じGameObjectにこのコンポーネントを配置する。
+    public void CompleteEnable()
+    {
+        if (!enabling) return;
+        enabling = false;
+        SetInteraction(true);
+    }
+
+    public void CompleteDisable()
+    {
+        if (!disabling) return;
+        disabling = false;
+        Root.SetActive(false);
+    }
+
+    public async Awaitable WaitForTransition(CancellationToken cancellationToken = default)
+    {
+        int expectedVersion = version;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, destroyCancellationToken);
+        float deadline = Time.unscaledTime + animationTimeout;
+        while (enabling || disabling)
+        {
+            linked.Token.ThrowIfCancellationRequested();
+            if (expectedVersion != version) throw new OperationCanceledException("UI transition replaced.");
+            if (Time.unscaledTime >= deadline)
+                throw new InvalidOperationException(name + ": Animation Eventの完了通知がありません。");
+            await Awaitable.NextFrameAsync(linked.Token);
+        }
+        linked.Token.ThrowIfCancellationRequested();
+    }
+
+    private void SetInteraction(bool enabled)
+    {
+        if (canvasGroup == null) return;
+        canvasGroup.interactable = enabled;
+        canvasGroup.blocksRaycasts = enabled;
     }
 }

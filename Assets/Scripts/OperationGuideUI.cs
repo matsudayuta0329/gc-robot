@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public class OperationGuideUI : MonoBehaviour, IUIElement
+public class OperationGuideUI : AnimatedUIElement
 {
+    private OperationGuidePresenter presenter;
+    public OperationGuidePresenter Presenter => presenter ??= new OperationGuidePresenter(this);
     [Serializable]
     public class GuideEntry
     {
@@ -32,8 +34,6 @@ public class OperationGuideUI : MonoBehaviour, IUIElement
         }
     }
 
-    public void Enable() => gameObject.SetActive(true);
-    public void Disable() => gameObject.SetActive(false);
     public void SetText(string text)
     {
         if (messageText != null) messageText.text = text ?? string.Empty;

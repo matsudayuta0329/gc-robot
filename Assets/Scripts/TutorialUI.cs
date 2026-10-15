@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class TutorialUI : AnimatedUIElement
 {
+    private TutorialUIPresenter presenter;
+    public TutorialUIPresenter Presenter => presenter ??= new TutorialUIPresenter(this);
     [SerializeField] private MessageWindow messageWindow;
     [SerializeField] private TMP_Text trashCountText;
     [SerializeField] private OperationGuideUI operationGuide;

@@ -24,6 +24,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GarbageCounter garbageCounter;
     [SerializeField] private GameUI gameUI;
     [SerializeField] private ResultUI resultUI;
+    [SerializeField] private UIParent uiParent;
     [SerializeField] private string lobbyScene;
     private readonly List<TrashEntry> validTrash = new List<TrashEntry>();
     private readonly List<GameObject> spawnedTrash = new List<GameObject>();
@@ -40,9 +41,9 @@ public class GameManager : MonoBehaviour
 
     private async void Start()
     {
-        if (player == null || inputReader == null || garbageCounter == null || gameUI == null || resultUI == null)
+        if (player == null || inputReader == null || garbageCounter == null || gameUI == null || resultUI == null || uiParent == null)
         {
-            Debug.LogError("GameManager: Player / InputReader / GarbageCounter / GameUI / ResultUIを設定してください。", this);
+            Debug.LogError("GameManager: Player / InputReader / GarbageCounter / GameUI / ResultUI / UIParentを設定してください。", this);
             return;
         }
         foreach (var entry in trashObjects)
@@ -52,15 +53,13 @@ public class GameManager : MonoBehaviour
             else
                 Debug.LogWarning("GameManager: Garbageのないごみ設定をスキップしました。", this);
         }
-        garbageCounter.OnUpdateCount += gameUI.SetTrashNum;
+        gameUI.Presenter.Bind(garbageCounter);
         try
         {
-            resultUI.Disable();
             garbageCounter.ResetCount();
             RemainingTime = Mathf.Max(0, limit);
-            gameUI.SetTime(RemainingTime);
-            gameUI.Enable();
-            await WaitRealtime(gameUI.EnableDuration);
+            gameUI.Presenter.SetTime(RemainingTime);
+            await uiParent.Enable(destroyCancellationToken);
             player.SetPaused(false);
             inputReader.SetEnableAction(new[] { ActionType.Move, ActionType.Dash, ActionType.Vacuum, ActionType.Look });
             IsPlaying = true;
@@ -78,23 +77,18 @@ public class GameManager : MonoBehaviour
                 await Awaitable.NextFrameAsync(destroyCancellationToken);
                 RemainingTime = Mathf.Max(0, RemainingTime - Time.deltaTime);
                 nextSpawn -= Time.deltaTime;
-                gameUI.SetTime(RemainingTime);
+                gameUI.Presenter.SetTime(RemainingTime);
             }
             IsPlaying = false;
             player.SetPaused(true);
             inputReader.SetEnableAction(Array.Empty<ActionType>());
-            resultUI.Init(garbageCounter.CollectedCount);
-            resultUI.Enable();
-            gameUI.Disable();
-            await WaitRealtime(Mathf.Max(gameUI.DisableDuration, resultUI.EnableDuration));
-            while (!resultUI.IsConfirmed)
-                await Awaitable.NextFrameAsync(destroyCancellationToken);
-            resultUI.Disable();
-            await WaitRealtime(resultUI.DisableDuration);
+            resultUI.Presenter.SetResult(garbageCounter.CollectedCount);
+            await uiParent.FinishAsync(destroyCancellationToken);
             if (!string.IsNullOrWhiteSpace(lobbyScene))
                 await SceneManager.LoadSceneAsync(lobbyScene);
         }
         catch (OperationCanceledException) { }
+        catch (Exception exception) { Debug.LogException(exception, this); }
         finally
         {
             IsPlaying = false;
@@ -119,18 +113,11 @@ public class GameManager : MonoBehaviour
         spawnedTrash.Add(instance);
     }
 
-    private async Awaitable WaitRealtime(float duration)
-    {
-        float end = Time.unscaledTime + duration;
-        while (Time.unscaledTime < end)
-            await Awaitable.NextFrameAsync(destroyCancellationToken);
-    }
-
     private void OnDestroy()
     {
         if (garbageCounter != null && gameUI != null)
         {
-            garbageCounter.OnUpdateCount -= gameUI.SetTrashNum;
+            gameUI.Presenter.Dispose();
         }
         foreach (var trash in spawnedTrash)
             if (trash != null) Destroy(trash);

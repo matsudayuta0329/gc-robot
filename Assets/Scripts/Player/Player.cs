@@ -108,6 +108,7 @@ public class Player : MonoBehaviour
         isTalking = true;
         try { await nearbyNPC.Invoke(); }
         catch (OperationCanceledException) { }
+        catch (Exception exception) { Debug.LogException(exception, this); }
         finally { isTalking = false; }
     }
 

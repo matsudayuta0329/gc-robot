@@ -6,6 +6,9 @@ using UnityEngine.UI;
 // 会話とロビーの確認ダイアログで共有する。
 public class MessageWindow : AnimatedUIElement
 {
+    private MessageWindowPresenter presenter;
+    public MessageWindowPresenter Presenter => presenter ??= new MessageWindowPresenter(this);
+    public void ClearHandlers() { Bind(cancelButton, null); Bind(submitButton, null); }
     [SerializeField] private TMP_Text messageText;
     [SerializeField] private Button cancelButton;
     [SerializeField] private Button submitButton;

@@ -15,6 +15,7 @@ public class TutorialManager : MonoBehaviour
 
     [SerializeField] private List<TutorialData> tutorialData = new List<TutorialData>();
     [SerializeField] private TutorialUI tutorialUI;
+    [SerializeField] private UIParent uiParent;
     [SerializeField] private InputReader inputReader;
     [SerializeField] private Player player;
     [SerializeField] private string lobbyScene;
@@ -24,18 +25,19 @@ public class TutorialManager : MonoBehaviour
 
     private async void Start()
     {
-        if (tutorialUI == null || tutorialUI.MessageWindow == null || tutorialUI.OperationGuide == null || inputReader == null)
+        if (tutorialUI == null || tutorialUI.MessageWindow == null || tutorialUI.OperationGuide == null || inputReader == null || uiParent == null)
         {
             Debug.LogError("TutorialManager: TutorialUIと子UI、InputReaderを設定してください。", this);
             return;
         }
         inputReader.ActionPerformed += OnActionPerformed;
+        var presenter = tutorialUI.Presenter;
+        if (player != null) presenter.Bind(player.GetComponent<GarbageCounter>());
         try
         {
             inputReader.SetEnableAction(Array.Empty<ActionType>());
             if (player != null) player.SetPaused(true);
-            tutorialUI.Enable();
-            await WaitRealtime(tutorialUI.EnableDuration);
+            await uiParent.Enable(destroyCancellationToken);
             foreach (var data in tutorialData)
             {
                 if (data == null) continue;
@@ -44,11 +46,9 @@ public class TutorialManager : MonoBehaviour
                 currentAction = data.tutorialAction;
                 if (data.isTutorial)
                 {
-                    tutorialUI.MessageWindow.Disable();
-                    tutorialUI.OperationGuide.Enable();
-                    tutorialUI.OperationGuide.SetText(data.message);
+                    presenter.Message.Hide();
                     var types = new[] { ActionType.Move, data.tutorialAction };
-                    tutorialUI.OperationGuide.SetGuideEnable(types);
+                    presenter.Guide.Show(data.message, types);
                     if (player != null) player.SetPaused(false);
                     inputReader.SetEnableAction(types);
                 }
@@ -56,32 +56,32 @@ public class TutorialManager : MonoBehaviour
                 {
                     inputReader.SetEnableAction(Array.Empty<ActionType>());
                     if (player != null) player.SetPaused(true);
-                    tutorialUI.OperationGuide.SetGuideEnable(Array.Empty<ActionType>());
-                    tutorialUI.OperationGuide.Disable();
-                    tutorialUI.MessageWindow.Enable();
-                    tutorialUI.MessageWindow.Init(string.Empty, null, Advance);
-                    await tutorialUI.MessageWindow.SetText(data.message);
+                    presenter.Guide.Hide();
+                    await presenter.Message.ShowMessage(data.message, Advance);
                 }
                 while (!nextRequested)
                     await Awaitable.NextFrameAsync(destroyCancellationToken);
             }
             inputReader.SetEnableAction(Array.Empty<ActionType>());
             if (player != null) player.SetPaused(true);
-            tutorialUI.Disable();
-            await WaitRealtime(tutorialUI.DisableDuration);
+            await uiParent.FinishAsync(destroyCancellationToken);
             if (!string.IsNullOrWhiteSpace(lobbyScene)) await SceneManager.LoadSceneAsync(lobbyScene);
         }
         catch (OperationCanceledException) { }
+        catch (Exception exception) { Debug.LogException(exception, this); }
         finally
         {
             if (inputReader != null) inputReader.ActionPerformed -= OnActionPerformed;
+            presenter.Dispose();
+            if (player != null) player.SetPaused(true);
+            if (inputReader != null) inputReader.SetEnableAction(Array.Empty<ActionType>());
         }
     }
 
     public void Advance()
     {
-        if (!isExperience && tutorialUI.MessageWindow.IsTyping)
-            tutorialUI.MessageWindow.DisplayFullText();
+        if (!isExperience && tutorialUI.Presenter.Message.IsTyping)
+            tutorialUI.Presenter.Message.DisplayFullText();
         else nextRequested = true;
     }
 
@@ -91,10 +91,4 @@ public class TutorialManager : MonoBehaviour
         if (isExperience && action == currentAction) nextRequested = true;
     }
 
-    private async Awaitable WaitRealtime(float duration)
-    {
-        float end = Time.unscaledTime + duration;
-        while (Time.unscaledTime < end)
-            await Awaitable.NextFrameAsync(destroyCancellationToken);
-    }
 }

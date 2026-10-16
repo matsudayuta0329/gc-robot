@@ -519,6 +519,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameUI
   root: {fileID: 71413689}
   animator: {fileID: 71413693}
+  enableAnimation: {fileID: 7400000, guid: e0886b0e8be379244b32ae41c3139667, type: 2}
+  disableAnimation: {fileID: 7400000, guid: fc7e2e8435e54f943b589e17be3ad4bc, type: 2}
   canvasGroup: {fileID: 71413692}
   animationTimeout: 30
   timeText: {fileID: 688872835}
@@ -5632,7 +5634,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &917645877
 RectTransform:
   m_ObjectHideFlags: 0
@@ -8815,6 +8817,9 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::UIParent
   animator: {fileID: 1342490496}
+  startGameAnimation: {fileID: 7400000, guid: 02119a32d92cd7549b5412cd64c733a6, type: 2}
+  endGameAnimation: {fileID: 7400000, guid: f5b0443bb0635444b8e4115684857354, type: 2}
+  nextSceneAnimation: {fileID: 7400000, guid: 9f5d6f9a64f50eb41a34bc0af915cdef, type: 2}
   elements:
   - {fileID: 71413691}
   resultUI: {fileID: 1910754032}
@@ -12313,6 +12318,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResultUI
   root: {fileID: 0}
   animator: {fileID: 1910754034}
+  enableAnimation: {fileID: 7400000, guid: e0886b0e8be379244b32ae41c3139667, type: 2}
+  disableAnimation: {fileID: 7400000, guid: fc7e2e8435e54f943b589e17be3ad4bc, type: 2}
   canvasGroup: {fileID: 1910754033}
   animationTimeout: 30
   countText: {fileID: 1985144628}

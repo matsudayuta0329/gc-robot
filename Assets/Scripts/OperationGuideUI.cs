@@ -19,7 +19,11 @@ public class OperationGuideUI : AnimatedUIElement
     private readonly Dictionary<ActionType, List<GameObject>> lookup = new Dictionary<ActionType, List<GameObject>>();
     private bool initialized;
 
-    private void Awake() => Initialize();
+    protected override void Awake()
+    {
+        base.Awake();
+        Initialize();
+    }
 
     private void Initialize()
     {

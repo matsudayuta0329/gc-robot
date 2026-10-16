@@ -7,6 +7,9 @@ using UnityEngine;
 public class UIParent : MonoBehaviour
 {
     [SerializeField] private Animator animator;
+    [SerializeField] private AnimationClip startGameAnimation;
+    [SerializeField] private AnimationClip endGameAnimation;
+    [SerializeField] private AnimationClip nextSceneAnimation;
     [SerializeField] private List<AnimatedUIElement> elements = new List<AnimatedUIElement>();
     [SerializeField] private ResultUI resultUI;
     [SerializeField, Min(1)] private float animationTimeout = 30f;
@@ -14,7 +17,23 @@ public class UIParent : MonoBehaviour
     private bool animationCompleted;
     private bool resultShown;
     private bool busy;
+    private AnimatorOverrideController overrideController;
     private bool HasAnimator => animator != null && animator.runtimeAnimatorController != null;
+
+    private void Awake() => ConfigureAnimator();
+
+    private void ConfigureAnimator()
+    {
+        if (overrideController != null || !HasAnimator) return;
+        overrideController = UIAnimatorOverrides.Create(animator,
+            ("StartGame", startGameAnimation), ("EndGame", endGameAnimation),
+            ("NextScene", nextSceneAnimation));
+    }
+
+    private void OnDestroy()
+    {
+        if (overrideController != null) Destroy(overrideController);
+    }
 
     public async Awaitable Enable(CancellationToken cancellationToken = default)
     {
@@ -54,6 +73,7 @@ public class UIParent : MonoBehaviour
 
     private async Awaitable Play(string trigger, CancellationToken token)
     {
+        ConfigureAnimator();
         token.ThrowIfCancellationRequested();
         phase = trigger;
         animationCompleted = false;

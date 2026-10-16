@@ -128,7 +128,15 @@ public class UIFlowTests
         var element = go.AddComponent<GameUI>();
         Set(element, "animator", animator);
         Set(element, "canvasGroup", group);
+        var enableClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
+            "Assets/UIAnimations/Enable.anim");
+        Set(element, "enableAnimation", enableClip);
+        Set(element, "disableAnimation", UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
+            "Assets/UIAnimations/Disable.anim"));
         element.PrepareEnable();
+        var elementOverride = animator.runtimeAnimatorController as AnimatorOverrideController;
+        Assert.IsNotNull(elementOverride);
+        Assert.AreSame(enableClip, elementOverride["Enable"]);
         Assert.That(group.alpha, Is.EqualTo(0f).Within(0.01f));
         yield return new WaitForSecondsRealtime(0.1f);
         Assert.That(group.alpha, Is.EqualTo(0f).Within(0.01f));
@@ -137,20 +145,36 @@ public class UIFlowTests
         var parentAnimator = parentObject.AddComponent<Animator>();
         var overlay = Create("Transition");
         overlay.transform.SetParent(parentObject.transform);
-        overlay.AddComponent<CanvasGroup>();
+        var overlayGroup = overlay.AddComponent<CanvasGroup>();
+        overlayGroup.alpha = 1f;
+        overlay.SetActive(false);
         parentAnimator.runtimeAnimatorController = UnityEditor.AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
             "Assets/UIAnimations/UIParent.controller");
         Assert.IsNotNull(parentAnimator.runtimeAnimatorController);
         var parent = parentObject.AddComponent<UIParent>();
         Set(parent, "animator", parentAnimator);
+        Set(parent, "startGameAnimation", UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
+            "Assets/UIAnimations/StartGame.anim"));
+        Set(parent, "endGameAnimation", UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
+            "Assets/UIAnimations/EndGame.anim"));
+        Set(parent, "nextSceneAnimation", UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
+            "Assets/UIAnimations/NextScene.anim"));
         Set(parent, "elements", new List<AnimatedUIElement> { element });
         bool started = false;
         async void StartUI() { await parent.Enable(); started = true; }
         StartUI();
+        var parentOverride = parentAnimator.runtimeAnimatorController as AnimatorOverrideController;
+        Assert.IsNotNull(parentOverride);
+        Assert.AreSame(UnityEditor.AssetDatabase.LoadAssetAtPath<AnimationClip>(
+            "Assets/UIAnimations/IdleTransition.anim"), parentOverride["IdleTransition"]);
         yield return new WaitForSecondsRealtime(0.2f);
         Assert.IsFalse(started);
+        Assert.IsTrue(overlay.activeSelf);
         yield return new WaitForSecondsRealtime(0.6f);
         Assert.IsTrue(started);
+        Assert.IsTrue(parentAnimator.GetCurrentAnimatorStateInfo(0).IsName("Idle"));
+        Assert.IsFalse(overlay.activeSelf);
+        Assert.That(overlayGroup.alpha, Is.EqualTo(0f).Within(0.01f));
         Assert.That(group.alpha, Is.EqualTo(1f).Within(0.01f));
         Assert.IsTrue(group.interactable);
         bool finished = false;

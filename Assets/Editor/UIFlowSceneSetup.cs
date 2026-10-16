@@ -158,6 +158,7 @@ public static class UIFlowSceneSetup
             var group = overlay.AddComponent<CanvasGroup>();
             group.alpha = 1f;
             group.blocksRaycasts = false;
+            overlay.SetActive(false);
         }
         Selection.activeGameObject = canvas.gameObject;
         UIAnimationSetup.AssignSelected();

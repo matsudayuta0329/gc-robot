@@ -6,14 +6,31 @@ public class AnimatedUIElement : MonoBehaviour, IUIElement
 {
     [SerializeField] private GameObject root;
     [SerializeField] private Animator animator;
+    [SerializeField] private AnimationClip enableAnimation;
+    [SerializeField] private AnimationClip disableAnimation;
     [SerializeField] private CanvasGroup canvasGroup;
     [SerializeField, Min(1)] private float animationTimeout = 30f;
     private int version;
     private bool enabling;
     private bool disabling;
+    private AnimatorOverrideController overrideController;
     public bool IsVisible { get; private set; }
     protected GameObject Root => root != null ? root : gameObject;
     private bool HasAnimator => animator != null && animator.runtimeAnimatorController != null;
+
+    protected virtual void Awake() => ConfigureAnimator();
+
+    private void ConfigureAnimator()
+    {
+        if (overrideController != null || !HasAnimator) return;
+        overrideController = UIAnimatorOverrides.Create(animator,
+            ("Enable", enableAnimation), ("Disable", disableAnimation));
+    }
+
+    protected virtual void OnDestroy()
+    {
+        if (overrideController != null) Destroy(overrideController);
+    }
 
     public virtual void PrepareEnable()
     {
@@ -21,6 +38,7 @@ public class AnimatedUIElement : MonoBehaviour, IUIElement
         enabling = disabling = false;
         IsVisible = false;
         Root.SetActive(true);
+        ConfigureAnimator();
         SetInteraction(false);
         if (HasAnimator)
         {

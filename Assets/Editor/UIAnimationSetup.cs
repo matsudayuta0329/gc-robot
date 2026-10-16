@@ -37,7 +37,7 @@ public static class UIAnimationSetup
     {
         var state = machine.AddState(name);
         state.motion = motion;
-        // MotionなしのIdleではEnableの終端姿勢を保持する。
+        // Motionに含まれないプロパティの既定値書き戻しを避ける。
         state.writeDefaultValues = false;
         return state;
     }
@@ -84,10 +84,24 @@ public static class UIAnimationSetup
         foreach (string trigger in new[] { "startGame", "endGame", "nextScene" })
             controller.AddParameter(trigger, AnimatorControllerParameterType.Trigger);
         var machine = controller.layers[0].stateMachine;
-        var idle = State(machine, "Idle");
+        var idleClip = Clip("IdleTransition", "Transition", 0f, 0f);
+        var inactive = new Keyframe(0f, 0f)
+            { inTangent = float.PositiveInfinity, outTangent = float.PositiveInfinity };
+        var inactiveEnd = new Keyframe(0.5f, 0f)
+            { inTangent = float.PositiveInfinity, outTangent = float.PositiveInfinity };
+        idleClip.SetCurve("Transition", typeof(GameObject), "m_IsActive",
+            new AnimationCurve(inactive, inactiveEnd));
+        var idle = State(machine, "Idle", idleClip);
         machine.defaultState = idle;
-        var start = State(machine, "StartGame", Clip("StartGame", "Transition", 1f, 0f,
-            Event(0.1f, "EnableElements"), Event(0.5f, "CompleteStart")));
+        var startClip = Clip("StartGame", "Transition", 1f, 0f,
+            Event(0.1f, "EnableElements"), Event(0.5f, "CompleteStart"));
+        // 終了直前にオーバーレイを非アクティブへ戻し、IdleTransitionでも維持する。
+        startClip.SetCurve("Transition", typeof(CanvasGroup), "m_Alpha",
+            AnimationCurve.Linear(0f, 1f, 0.45f, 0f));
+        var show = new Keyframe(0f, 1f) { inTangent = float.PositiveInfinity, outTangent = float.PositiveInfinity };
+        var hide = new Keyframe(29f / 60f, 0f) { inTangent = float.PositiveInfinity, outTangent = float.PositiveInfinity };
+        startClip.SetCurve("Transition", typeof(GameObject), "m_IsActive", new AnimationCurve(show, hide));
+        var start = State(machine, "StartGame", startClip);
         var end = State(machine, "EndGame", Clip("EndGame", "Transition", 0f, 0f,
             Event(0.1f, "DisableElements"), Event(0.3f, "EnableResult"), Event(0.5f, "CompleteEnd")));
         var next = State(machine, "NextScene", Clip("NextScene", "Transition", 0f, 1f,
@@ -128,7 +142,23 @@ public static class UIAnimationSetup
             var group = component.GetComponent<CanvasGroup>();
             if (group == null) group = Undo.AddComponent<CanvasGroup>(component.gameObject);
             serialized.FindProperty("canvasGroup").objectReferenceValue = group;
+            AssignClipIfEmpty(serialized, "enableAnimation", "Enable");
+            AssignClipIfEmpty(serialized, "disableAnimation", "Disable");
+        }
+        else if (component is UIParent)
+        {
+            AssignClipIfEmpty(serialized, "startGameAnimation", "StartGame");
+            AssignClipIfEmpty(serialized, "endGameAnimation", "EndGame");
+            AssignClipIfEmpty(serialized, "nextSceneAnimation", "NextScene");
         }
         serialized.ApplyModifiedProperties();
+    }
+
+    private static void AssignClipIfEmpty(SerializedObject target, string field, string clipName)
+    {
+        var property = target.FindProperty(field);
+        if (property.objectReferenceValue == null)
+            property.objectReferenceValue = AssetDatabase.LoadAssetAtPath<AnimationClip>(
+                Folder + "/" + clipName + ".anim");
     }
 }

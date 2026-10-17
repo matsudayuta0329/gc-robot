@@ -57,11 +57,11 @@ public class SceneFlowTests
             controller.Move(Vector3.forward * 0.01f);
             yield return Until(() =>
             {
-                var popup = UnityEngine.Object.FindFirstObjectByType<MessageWindow>();
+                var popup = UnityEngine.Object.FindFirstObjectByType<ConfirmationDialog>();
                 return popup != null && popup.IsVisible;
             });
             Assert.IsTrue(player.IsPaused);
-            var popup = UnityEngine.Object.FindFirstObjectByType<MessageWindow>();
+            var popup = UnityEngine.Object.FindFirstObjectByType<ConfirmationDialog>();
             var popupFields = new SerializedObject(popup);
             ((Button)popupFields.FindProperty("submitButton").objectReferenceValue).onClick.Invoke();
             yield return Until(() => SceneManager.GetActiveScene().name == "Game");
@@ -77,6 +77,22 @@ public class SceneFlowTests
             UnityEngine.Object.FindFirstObjectByType<TutorialManager>().Advance();
             yield return new WaitForSecondsRealtime(0.5f);
         }
+        Assert.AreEqual("Lobby", SceneManager.GetActiveScene().name);
+        yield return Until(() => !UnityEngine.Object.FindFirstObjectByType<LobbyManager>().IsBusy);
+        var npc = UnityEngine.Object.FindFirstObjectByType<NPC>();
+        Assert.IsNotNull(npc);
+        bool conversationFinished = false;
+        async void Talk() { await npc.Invoke(); conversationFinished = true; }
+        Talk();
+        yield return Until(() => UnityEngine.Object.FindFirstObjectByType<MessageBox>().IsVisible);
+        var box = UnityEngine.Object.FindFirstObjectByType<MessageBox>();
+        var boxFields = new SerializedObject(box);
+        var next = (Button)boxFields.FindProperty("nextButton").objectReferenceValue;
+        Assert.IsTrue(UnityEngine.Object.FindFirstObjectByType<Player>().IsPaused);
+        next.onClick.Invoke();
+        yield return null;
+        next.onClick.Invoke();
+        yield return Until(() => conversationFinished);
         Assert.AreEqual("Lobby", SceneManager.GetActiveScene().name);
     }
 }

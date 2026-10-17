@@ -104,7 +104,8 @@ public static class UIFlowSceneSetup
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/" + name + ".unity");
             foreach (var text in Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                if (text.GetComponentInParent<MessageWindow>() != null ||
+                if (text.GetComponentInParent<MessageBox>() != null ||
+                    text.GetComponentInParent<ConfirmationDialog>() != null ||
                     text.GetComponentInParent<OperationGuideUI>() != null ||
                     text.GetComponentInParent<TutorialUI>() != null ||
                     text.GetComponentInParent<NPC>() != null)
@@ -125,16 +126,26 @@ public static class UIFlowSceneSetup
         text.rectTransform.sizeDelta = new Vector2(180, 60);
         return button;
     }
-    private static MessageWindow Popup(Transform canvas)
+    private static ConfirmationDialog Confirmation(Transform canvas)
     {
-        var go = Rect("MessageWindow", canvas, new Vector2(760, 260), Vector2.zero);
+        var go = Rect("ConfirmationDialog", canvas, new Vector2(760, 260), Vector2.zero);
         var image = go.AddComponent<Image>();
         image.color = new Color(0.04f, 0.07f, 0.1f, 0.97f);
-        var popup = go.AddComponent<MessageWindow>();
-        Ref(popup, "messageText", Label("Message", go.transform, "", new Vector2(0, 55)));
-        Ref(popup, "submitButton", Button("はい", go.transform, new Vector2(-120, -65)));
-        Ref(popup, "cancelButton", Button("いいえ", go.transform, new Vector2(120, -65)));
-        return popup;
+        var dialog = go.AddComponent<ConfirmationDialog>();
+        Ref(dialog, "messageText", Label("Message", go.transform, "", new Vector2(0, 55)));
+        Ref(dialog, "submitButton", Button("はい", go.transform, new Vector2(-120, -65)));
+        Ref(dialog, "cancelButton", Button("いいえ", go.transform, new Vector2(120, -65)));
+        return dialog;
+    }
+    private static MessageBox Conversation(Transform canvas)
+    {
+        var go = Rect("MessageBox", canvas, new Vector2(760, 260), Vector2.zero);
+        var image = go.AddComponent<Image>();
+        image.color = new Color(0.04f, 0.07f, 0.1f, 0.97f);
+        var box = go.AddComponent<MessageBox>();
+        Ref(box, "messageText", Label("Message", go.transform, "", new Vector2(0, 55)));
+        Ref(box, "nextButton", Button("次へ", go.transform, new Vector2(0, -65)));
+        return box;
     }
     private static UIParent Parent(Canvas canvas, AnimatedUIElement[] elements, ResultUI result = null)
     {
@@ -189,12 +200,14 @@ public static class UIFlowSceneSetup
         if (Find<LobbyManager>() != null) return;
         var canvas = Canvas();
         var player = Player();
-        var popup = Popup(canvas.transform);
+        var dialog = Confirmation(canvas.transform);
+        var messageBox = Conversation(canvas.transform);
         var manager = new GameObject("LobbyManager").AddComponent<LobbyManager>();
         Ref(manager, "uiParent", Parent(canvas, System.Array.Empty<AnimatedUIElement>()));
         Ref(manager, "player", player);
         Ref(manager, "inputReader", player.GetComponent<InputReader>());
-        Ref(manager, "popup", popup);
+        Ref(manager, "confirmationDialog", dialog);
+        Ref(manager, "messageBox", messageBox);
         // Gateの外観は既存のマップを利用し、接触判定だけを子に追加する。
         var gates = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None)
             .Where(t => t.name == "Gate" || t.name.StartsWith("Gate (")).ToArray();
@@ -223,8 +236,7 @@ public static class UIFlowSceneSetup
         npcObject.transform.position = player.transform.position + new Vector3(3, 1, 0);
         var npc = npcObject.AddComponent<NPC>();
         Ref(npc, "lobbyManager", manager);
-        TextValue(npc, "message", "チュートリアルを受けますか？");
-        TextValue(npc, "moveScene", "Tutorial");
+        TextValue(npc, "message", "制限時間内にごみを集めてください。ゲートからゲームを開始できます。");
         var guide = new GameObject("TalkGuide", typeof(TextMeshPro));
         guide.transform.SetParent(npc.transform, false);
         guide.transform.localPosition = Vector3.up * 1.5f;
@@ -254,13 +266,13 @@ public static class UIFlowSceneSetup
         var camera = Find<Camera>();
         camera.transform.position = new Vector3(0, 22, -18);
         camera.transform.LookAt(player.transform);
-        var message = Popup(canvas.transform);
+        var message = Conversation(canvas.transform);
         var guideObject = Rect("OperationGuide", canvas.transform, new Vector2(760, 160), new Vector2(0, -150));
         var guide = guideObject.AddComponent<OperationGuideUI>();
         Ref(guide, "messageText", Label("Guide", guideObject.transform, "", Vector2.zero));
         var tutorialObject = Rect("TutorialUI", canvas.transform, new Vector2(200, 80), new Vector2(350, 200));
         var tutorial = tutorialObject.AddComponent<TutorialUI>();
-        Ref(tutorial, "messageWindow", message);
+        Ref(tutorial, "messageBox", message);
         Ref(tutorial, "operationGuide", guide);
         Ref(tutorial, "trashCountText", Label("Count", tutorialObject.transform, "0", Vector2.zero));
         var parent = Parent(canvas, new AnimatedUIElement[] { tutorial });

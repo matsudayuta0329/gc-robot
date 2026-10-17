@@ -25,7 +25,7 @@ public class TutorialManager : MonoBehaviour
 
     private async void Start()
     {
-        if (tutorialUI == null || tutorialUI.MessageWindow == null || tutorialUI.OperationGuide == null || inputReader == null || uiParent == null)
+        if (tutorialUI == null || tutorialUI.MessageBox == null || tutorialUI.OperationGuide == null || inputReader == null || uiParent == null)
         {
             Debug.LogError("TutorialManager: TutorialUIと子UI、InputReaderを設定してください。", this);
             return;

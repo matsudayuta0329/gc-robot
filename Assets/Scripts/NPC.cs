@@ -3,7 +3,6 @@ using UnityEngine;
 public class NPC : MonoBehaviour
 {
     [SerializeField, TextArea] private string message;
-    [SerializeField] private string moveScene;
     [SerializeField] private GameObject guide;
     [SerializeField] private LobbyManager lobbyManager;
     private bool isInvoking;
@@ -20,7 +19,7 @@ public class NPC : MonoBehaviour
         if (isInvoking || lobbyManager == null || lobbyManager.IsBusy) return;
         isInvoking = true;
         SetGuideEnable(false);
-        try { await lobbyManager.ConfirmAndTravelAsync(message, moveScene, destroyCancellationToken); }
+        try { await lobbyManager.ShowConversationAsync(message, destroyCancellationToken); }
         finally { isInvoking = false; }
     }
 }

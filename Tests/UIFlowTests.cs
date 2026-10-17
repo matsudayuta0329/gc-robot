@@ -7,6 +7,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
+using TMPro;
 
 public class UIFlowTests
 {
@@ -60,7 +61,7 @@ public class UIFlowTests
     [UnityTest]
     public IEnumerator PopupReturnsAnswerOnlyAfterHidingAndCanBeReused()
     {
-        var popup = Create("Popup").AddComponent<MessageWindow>();
+        var popup = Create("Popup").AddComponent<ConfirmationDialog>();
         var yes = Create("Yes").AddComponent<Button>();
         var no = Create("No").AddComponent<Button>();
         Set(popup, "submitButton", yes);
@@ -83,7 +84,7 @@ public class UIFlowTests
     [UnityTest]
     public IEnumerator CancelledPopupReleasesWaitAndHides()
     {
-        var popup = Create("Popup").AddComponent<MessageWindow>();
+        var popup = Create("Popup").AddComponent<ConfirmationDialog>();
         using var cancellation = new CancellationTokenSource();
         bool cancelled = false;
         async void Ask()
@@ -96,6 +97,31 @@ public class UIFlowTests
         yield return null;
         Assert.IsTrue(cancelled);
         Assert.IsFalse(popup.IsVisible);
+    }
+
+    [UnityTest]
+    public IEnumerator MessageBoxFinishesTextBeforeClosing()
+    {
+        var box = Create("MessageBox").AddComponent<MessageBox>();
+        var messageText = Create("Message").AddComponent<TextMeshProUGUI>();
+        var next = Create("Next").AddComponent<Button>();
+        Set(box, "messageText", messageText);
+        Set(box, "nextButton", next);
+        Set(box, "characterInterval", 1f);
+        bool completed = false;
+        async void Show() { await box.Presenter.ShowAndWaitAsync("Hello"); completed = true; }
+        Show();
+        yield return null;
+        Assert.IsTrue(box.IsTyping);
+        next.onClick.Invoke();
+        yield return null;
+        Assert.IsFalse(box.IsTyping);
+        Assert.AreEqual(int.MaxValue, messageText.maxVisibleCharacters);
+        Assert.IsFalse(completed);
+        next.onClick.Invoke();
+        yield return null;
+        Assert.IsTrue(completed);
+        Assert.IsFalse(box.IsVisible);
     }
 
     [UnityTest]
@@ -195,14 +221,16 @@ public class UIFlowTests
         var player = playerObject.AddComponent<Player>();
         Set(player, "inputReader", input);
         playerObject.SetActive(true);
-        var popup = Create("Popup").AddComponent<MessageWindow>();
+        var popup = Create("Popup").AddComponent<ConfirmationDialog>();
+        var messageBox = Create("MessageBox").AddComponent<MessageBox>();
         var no = Create("No").AddComponent<Button>();
         Set(popup, "cancelButton", no);
         var managerObject = Create("Lobby", false);
         var manager = managerObject.AddComponent<LobbyManager>();
         Set(manager, "player", player);
         Set(manager, "inputReader", input);
-        Set(manager, "popup", popup);
+        Set(manager, "confirmationDialog", popup);
+        Set(manager, "messageBox", messageBox);
         Set(manager, "uiParent", Create("Parent").AddComponent<UIParent>());
         managerObject.SetActive(true);
         yield return null;

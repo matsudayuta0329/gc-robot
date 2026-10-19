@@ -22,17 +22,24 @@ public class TutorialManager : MonoBehaviour
     private bool nextRequested;
     private bool isExperience;
     private ActionType currentAction;
+    private float forwardTravel;
+    private float backwardTravel;
+    private float turnTravel;
+    private int collectedBeforeExperience;
+    private bool dashStarted;
+    private GarbageCounter garbageCounter;
 
     private async void Start()
     {
-        if (tutorialUI == null || tutorialUI.MessageBox == null || tutorialUI.OperationGuide == null || inputReader == null || uiParent == null)
+        if (tutorialUI == null || tutorialUI.MessageBox == null || tutorialUI.OperationGuide == null || inputReader == null || uiParent == null || player == null)
         {
-            Debug.LogError("TutorialManager: TutorialUIと子UI、InputReaderを設定してください。", this);
+            Debug.LogError("TutorialManager: TutorialUIと子UI、InputReader、UIParent、Playerを設定してください。", this);
             return;
         }
         inputReader.ActionPerformed += OnActionPerformed;
         var presenter = tutorialUI.Presenter;
-        if (player != null) presenter.Bind(player.GetComponent<GarbageCounter>());
+        garbageCounter = player.GetComponent<GarbageCounter>();
+        presenter.Bind(garbageCounter);
         try
         {
             inputReader.SetEnableAction(Array.Empty<ActionType>());
@@ -44,11 +51,16 @@ public class TutorialManager : MonoBehaviour
                 nextRequested = false;
                 isExperience = data.isTutorial;
                 currentAction = data.tutorialAction;
+                forwardTravel = 0f;
+                backwardTravel = 0f;
+                turnTravel = 0f;
+                dashStarted = false;
+                collectedBeforeExperience = garbageCounter != null ? garbageCounter.CollectedCount : 0;
                 if (data.isTutorial)
                 {
                     presenter.Message.Hide();
                     var types = new[] { ActionType.Move, data.tutorialAction };
-                    presenter.Guide.Show(data.message, types);
+                    presenter.Guide.Show(data.message, new[] { data.tutorialAction });
                     if (player != null) player.SetPaused(false);
                     inputReader.SetEnableAction(types);
                 }
@@ -60,7 +72,10 @@ public class TutorialManager : MonoBehaviour
                     await presenter.Message.ShowMessage(data.message, Advance);
                 }
                 while (!nextRequested)
+                {
                     await Awaitable.NextFrameAsync(destroyCancellationToken);
+                    if (isExperience) UpdateExperience();
+                }
             }
             inputReader.SetEnableAction(Array.Empty<ActionType>());
             if (player != null) player.SetPaused(true);
@@ -82,15 +97,39 @@ public class TutorialManager : MonoBehaviour
 
     public void Advance()
     {
-        if (!isExperience && tutorialUI.Presenter.Message.IsTyping)
+        if (isExperience) return;
+        if (tutorialUI.Presenter.Message.IsTyping)
             tutorialUI.Presenter.Message.DisplayFullText();
         else nextRequested = true;
     }
 
-    // 操作体験は対応入力の実行、または外部判定からのAdvanceで完了。
+    private void UpdateExperience()
+    {
+        switch (currentAction)
+        {
+            case ActionType.Move:
+                var move = inputReader.GetMoveInput();
+                forwardTravel += Mathf.Max(0f, move.y) * Time.deltaTime;
+                backwardTravel += Mathf.Max(0f, -move.y) * Time.deltaTime;
+                turnTravel += Mathf.Abs(move.x) * Time.deltaTime;
+                nextRequested = forwardTravel >= 0.2f && backwardTravel >= 0.2f && turnTravel >= 0.2f;
+                break;
+            case ActionType.Vacuum:
+                nextRequested = garbageCounter != null &&
+                    garbageCounter.CollectedCount > collectedBeforeExperience;
+                break;
+            case ActionType.Dash:
+                nextRequested = dashStarted && player != null && !player.IsDashing;
+                break;
+        }
+    }
+
+    // ダッシュは入力時に始まり、終了後に次へ進む。
     private void OnActionPerformed(ActionType action)
     {
-        if (isExperience && action == currentAction) nextRequested = true;
+        if (!isExperience || action != currentAction) return;
+        if (action == ActionType.Dash) dashStarted = true;
+        else if (action != ActionType.Move && action != ActionType.Vacuum) nextRequested = true;
     }
 
 }

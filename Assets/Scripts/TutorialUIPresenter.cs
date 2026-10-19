@@ -5,7 +5,7 @@ public sealed class TutorialUIPresenter : IDisposable
     private readonly TutorialUI view;
     private GarbageCounter counter;
     public TutorialUIPresenter(TutorialUI view) => this.view = view;
-    public MessageWindowPresenter Message => view.MessageWindow.Presenter;
+    public MessageBoxPresenter Message => view.MessageBox.Presenter;
     public OperationGuidePresenter Guide => view.OperationGuide.Presenter;
     public void Bind(GarbageCounter source)
     {

@@ -30,6 +30,7 @@ public class Player : MonoBehaviour
     private bool isTalking;
 
     public bool IsPaused => movement?.IsPaused ?? isPaused;
+    public bool IsDashing => movement?.IsDashing ?? false;
 
     private void Awake()
     {

@@ -25,7 +25,7 @@
 | --- | --- | --- |
 | Title | TitleManager | スタートボタン → タイトル演出のAnimation Event → Tutorial |
 | Tutorial | TutorialManager | 登録された説明・操作体験が終了 → nextScene演出 → lobbyScene |
-| Lobby | LobbyManager | ゲート接触またはNPCへの話しかけ → 確認ポップアップ → はいならnextScene演出 → 対象のmoveScene |
+| Lobby | LobbyManager | NPCへの話しかけ → 会話表示・終了、またはゲート接触 → 確認ダイアログ → はいならnextScene演出 → ゲートのmoveScene |
 | Game | GameManager | 制限時間終了 → endGame演出 → ResultUIのClose待ち → nextScene演出 → lobbyScene |
 
 各Managerがゲーム進行とシーン移動を担当し、UIParentは演出順だけを担当します。終了時はプレイヤーとゲーム用InputActionを停止してから演出を開始します。UIボタンの入力はEventSystemが処理します。
@@ -34,7 +34,7 @@
 
 1. Titleでは`TitleManager`がクレジットと開始ボタンを扱い、開始演出のAnimation EventからTutorialを読み込みます。
 2. Tutorialでは`UIParent.Enable`の開始演出が終わるまで操作を止めます。`TutorialManager`は登録順に会話と操作体験を進めます。会話中は入力と操作ガイドを止め、操作体験中は対象の`ActionType`だけを有効にします。すべて終わると`UIParent.FinishAsync`の`nextScene`演出を経てLobbyへ進みます。
-3. LobbyではNPCへの話しかけ、またはゲートへの接触で同じ確認処理を呼びます。ポップアップ表示から非表示完了までプレイヤー入力を止め、「いいえ」なら復帰、「はい」なら`nextScene`演出後に対象シーンへ移ります。同時に複数の確認は開きません。
+3. LobbyではNPCへの話しかけで`MessageBox`に会話文を文字送りし、「次へ」で閉じます。ゲートへの接触では`ConfirmationDialog`を表示し、「いいえ」なら復帰、「はい」なら`nextScene`演出後にゲートの対象シーンへ移ります。どちらの表示中もプレイヤー入力を止め、同時に複数の表示は開きません。
 4. Gameでは開始演出後に操作を解放し、制限時間中にごみを生成します。吸引またはダッシュで回収した数を記録し、時間切れで操作を止めます。`endGame`演出でResultUIを表示し、Closeを待ってから`nextScene`演出でLobbyへ戻ります。
 
 入力は`InputReader`が`ActionType`ごとに有効化します。`Player`はUnityの更新処理と入力イベントを受け持ち、移動・ダッシュを`PlayerMovement`、吸引・回収を`PickupGarbage`へ委譲します。`GarbageCounter`は回収個数と得点用の値を別々に保持します。現在のResultUIが表示する値は回収個数です。
@@ -52,16 +52,16 @@ gc-robot/
 │  ├─ Scenes/
 │  │  ├─ Title.unity                  メニューとクレジット
 │  │  ├─ Tutorial.unity               会話と操作練習
-│  │  ├─ Lobby.unity                  NPCとゲートから遷移する拠点
+│  │  ├─ Lobby.unity                  NPCとの会話とゲートからの遷移を行う拠点
 │  │  └─ Game.unity                   制限時間内にごみを回収するゲーム本編
 │  ├─ Scripts/
 │  │  ├─ TitleManager.cs             開始ボタン・クレジット・Tutorial遷移
 │  │  ├─ TutorialManager.cs          会話／操作体験の順序とLobby遷移
-│  │  ├─ LobbyManager.cs             確認中の入力停止・排他制御・シーン遷移
+│  │  ├─ LobbyManager.cs             会話・確認中の入力停止・排他制御・ゲート遷移
 │  │  ├─ GameManager.cs              ごみ生成・時間管理・結果表示・Lobby遷移
 │  │  ├─ InputReader.cs              InputActionをActionType別に管理
 │  │  ├─ ActionType.cs               Move、Dash、Vacuumなどの操作種別
-│  │  ├─ NPC.cs                      会話ガイドと確認処理の起動
+│  │  ├─ NPC.cs                      会話ガイドとメッセージ表示の起動
 │  │  ├─ Gate.cs                     接触判定から確認処理を起動
 │  │  ├─ Garbage.cs                  ごみの吸引進行・回収演出・固有点
 │  │  ├─ PlayerCamera.cs             プレイヤーを追従し範囲内に収めるカメラ
@@ -76,7 +76,8 @@ gc-robot/
 │  │  ├─ UIAnimatorOverrides.cs      共通ControllerのClipを起動時に差し替え
 │  │  ├─ GameUI.cs / GameUIPresenter.cs       時間・得点用の値の表示
 │  │  ├─ TutorialUI.cs / TutorialUIPresenter.cs  会話・ガイド・回収表示の統括
-│  │  ├─ MessageWindow.cs / MessageWindowPresenter.cs  文字送りと回答待機
+│  │  ├─ MessageBox.cs / MessageBoxPresenter.cs  会話文の文字送りと終了待機
+│  │  ├─ ConfirmationDialog.cs / ConfirmationDialogPresenter.cs  はい・いいえの確認
 │  │  ├─ OperationGuideUI.cs / OperationGuidePresenter.cs  操作ガイド
 │  │  └─ ResultUI.cs / ResultUIPresenter.cs   結果の回収数とClose待機
 │  ├─ UIAnimations/
@@ -120,7 +121,7 @@ Animatorなしでは演出を即時完了します。Animatorありで完了イ�
 
 ## 通常UIのAnimator
 
-AnimatedUIElementを共通基底とし、GameUI、TutorialUI、OperationGuideUI、MessageWindow、ResultUIで同じ構成を使用します。各コンポーネントのenableAnimation、disableAnimationへAnimationClipを設定します。共通のUIElement.controllerをAnimatorへ割り当てておけば、起動時に各コンポーネントがメモリ上のAnimatorOverrideControllerを作成し、自身のAnimatorへ設定します。UIParentも共通のUIParent.controllerから同様に作成します。OverrideアセットをUIごとに作る必要はありません。Clipを未設定にした箇所は共通Controllerの元Clipを使用します。
+AnimatedUIElementを共通基底とし、GameUI、TutorialUI、OperationGuideUI、MessageBox、ConfirmationDialog、ResultUIで同じ構成を使用します。各コンポーネントのenableAnimation、disableAnimationへAnimationClipを設定します。共通のUIElement.controllerをAnimatorへ割り当てておけば、起動時に各コンポーネントがメモリ上のAnimatorOverrideControllerを作成し、自身のAnimatorへ設定します。UIParentも共通のUIParent.controllerから同様に作成します。OverrideアセットをUIごとに作る必要はありません。Clipを未設定にした箇所は共通Controllerの元Clipを使用します。
 
 | State | Motion | Speed |
 | --- | --- | --- |
@@ -151,36 +152,39 @@ Editorメニュー：
 各ViewはTMPやButtonなどの参照を保持し、Presenterが表示更新・購読・確認の進行を担当します。Presenterは通常のC#クラスで、ViewのPresenterプロパティから取得します。
 
 - GameUIPresenter：GarbageCounterを購読して数値を更新し、Managerから受け取った残り時間を表示します。
-- TutorialUIPresenter：ごみ数表示、MessageWindowPresenter、OperationGuidePresenterをまとめます。
-- MessageWindowPresenter：会話の文字送り、確認の表示・回答待機・非表示を行います。
+- TutorialUIPresenter：ごみ数表示、MessageBoxPresenter、OperationGuidePresenterをまとめます。
+- MessageBoxPresenter：チュートリアルとNPCの会話文を文字送りし、「次へ」による全文表示・終了を扱います。
+- ConfirmationDialogPresenter：「はい」「いいえ」の確認表示、回答待機、非表示を扱います。
 - OperationGuidePresenter：操作説明と表示対象ActionTypeを設定します。
 - ResultUIPresenter：結果の回収数を設定します。
 
 ゲーム中の数値はUIParentを経由しません。GameManagerはgameUI.Presenter.SetTime、resultUI.Presenter.SetResultを使用します。GarbageCounterへの購読はManager終了時に解除します。
 
-## 確認ポップアップとResultUI
+## 会話、確認ダイアログとResultUI
 
 ResultUIにはEnable、Disable、WaitForClose(token)、Closeがあります。ボタンはCloseを呼びます。既存ボタンのConfirm呼び出しも互換用に残しています。
 
-ロビーの確認は以下の一回の呼び出しで、表示から回答、非表示アニメーション完了まで待機します。
+ロビーのNPC会話は`messageBox.Presenter.ShowAndWaitAsync(message, token)`で表示から「次へ」、非表示アニメーション完了まで待機します。文字送り中に「次へ」を押すと全文を表示し、もう一度押すと閉じます。チュートリアルは`TutorialManager`が`MessageBoxPresenter.ShowMessage`と`Advance`で会話の進行を管理します。
+
+ゲートの確認は以下の一回の呼び出しで、表示から回答、非表示アニメーション完了まで待機します。
 
 ```csharp
-bool accepted = await popup.Presenter.ShowAndWaitAsync(message, cancellationToken);
+bool accepted = await confirmationDialog.Presenter.ShowAndWaitAsync(message, cancellationToken);
 ```
 
 C#のasyncメソッドではout/ref引数を使えないため、boolはAwaitable<bool>の戻り値で受け取ります。「はい」はtrue、「いいえ」はfalseです。キャンセル・破棄はOperationCanceledExceptionとして扱い、回答と混同しません。
 
 ## ロビーのNPCとゲート
 
-LobbyManagerへPlayer、InputReader、UIParent、MessageWindowを設定します。ロビーのUIParentはResultUIを空にします。
+LobbyManagerへPlayer、InputReader、UIParent、MessageBox、ConfirmationDialogを設定します。ロビーのUIParentはResultUIを空にします。
 
-- NPC：message、moveScene、guide、lobbyManagerを設定します。Playerは付近のNPCへInteract入力で話しかけます。PlayerのnpcLayerにNPCのレイヤーを含めます。
+- NPC：message、guide、lobbyManagerを設定します。NPCは会話を表示するだけで、シーン移動は行いません。Playerは付近のNPCへInteract入力で話しかけます。PlayerのnpcLayerにNPCのレイヤーを含めます。
 - Gate：Is Triggerを有効にしたColliderとGateを同じオブジェクトに設定し、lobbyManager、message、moveSceneを指定します。CharacterControllerとの検出用にKinematic Rigidbodyを付けた配置を同梱しています。
 - Gateは登録Playerだけに反応します。複数Colliderからの重複入場は抑制し、「いいえ」の直後に接触中のまま再表示しません。再表示には一度外へ出て再入場します。
-- NPCとGateは同じLobbyManagerの排他制御を使用します。確認中の別リクエストは受け付けません。
-- 確認表示から非表示完了まで操作を停止します。「はい」の場合は遷移演出中も停止を維持し、「いいえ」やキャンセルなら元の入力マスクと一時停止状態に復帰します。
+- NPCとGateは同じLobbyManagerの排他制御を使用します。会話・確認中の別リクエストは受け付けません。
+- 会話・確認の表示から非表示完了まで操作を停止します。ゲートで「はい」の場合は遷移演出中も停止を維持し、会話終了や「いいえ」では元の入力マスクと一時停止状態に復帰します。
 
-同梱Lobbyでは既存ゲートの外観に接触領域を追加し、チュートリアルへ移動するNPCを基本形状で配置しています。Tutorialは動作確認用の説明・移動・ダッシュ・吸引のデータを含みます。文言、操作ガイドのActionType別オブジェクト、NPCの外観、ゲートの範囲はInspectorで調整できます。Game/Lobby/TutorialはBuild Settingsに登録済みです。
+同梱Lobbyでは既存ゲートの外観に接触領域を追加し、ゲームの説明をするNPCを基本形状で配置しています。Tutorialは動作確認用の説明・移動・ダッシュ・吸引のデータを含みます。文言、操作ガイドのActionType別オブジェクト、NPCの外観、ゲートの範囲はInspectorで調整できます。Game/Lobby/TutorialはBuild Settingsに登録済みです。
 
 ## Player関連
 
@@ -196,8 +200,8 @@ powershell -ExecutionPolicy Bypass -File Tests/Run-GameAreaTests.ps1
 
 Temp/GameAreaValidationへコードとAnimatorをコピーし、Unity 6000.3.9f1のバッチモードでPlayModeテストを実行します。元シーンを開いたEditorとは別プロジェクトです。結果はTemp/game-area-results.xml、ログはTemp/game-area-tests.logです。
 
-既存のダッシュ・壁沿い余速・ごみ回収に加え、先頭姿勢の保持、実Animatorの完了待機、ResultUIなしの終了演出、結果の早期Closeと再表示、ポップアップ回答・キャンセル、ロビーの入力停止と排他制御を確認します。
+既存のダッシュ・壁沿い余速・ごみ回収に加え、先頭姿勢の保持、実Animatorの完了待機、ResultUIなしの終了演出、結果の早期Closeと再表示、会話の全文表示・終了、確認回答・キャンセル、ロビーの入力停止と排他制御を確認します。
 
-実シーンの結合テストはTests/Run-SceneFlowTests.ps1で実行します。Temp/SceneFlowValidationにプロジェクトをコピーし、Gameの結果画面からLobby、ゲートの物理接触・「はい」からGame、Tutorialの終了からLobbyまで検証します。結果はTemp/scene-flow-results.xmlです。テスト内ではゲーム時間を短縮し、チュートリアルのAdvanceを自動実行します。
+実シーンの結合テストはTests/Run-SceneFlowTests.ps1で実行します。Temp/SceneFlowValidationにプロジェクトをコピーし、Gameの結果画面からLobby、ゲートの物理接触・「はい」からGame、Tutorialの終了からLobby、NPC会話後もLobbyに留まることを検証します。結果はTemp/scene-flow-results.xmlです。テスト内ではゲーム時間を短縮し、チュートリアルのAdvanceを自動実行します。
 
 新しい日本語UIにはUIAnimations/UIJapanese.assetを使用します。同梱のDotGothic16を元にした動的TMPフォントで、Inspectorで文言を変更した場合も必要な文字を追加できます。

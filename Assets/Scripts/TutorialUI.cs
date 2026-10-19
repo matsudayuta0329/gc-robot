@@ -5,10 +5,10 @@ public class TutorialUI : AnimatedUIElement
 {
     private TutorialUIPresenter presenter;
     public TutorialUIPresenter Presenter => presenter ??= new TutorialUIPresenter(this);
-    [SerializeField] private MessageWindow messageWindow;
+    [SerializeField] private MessageBox messageBox;
     [SerializeField] private TMP_Text trashCountText;
     [SerializeField] private OperationGuideUI operationGuide;
-    public MessageWindow MessageWindow => messageWindow;
+    public MessageBox MessageBox => messageBox;
     public TMP_Text TrashCountText => trashCountText;
     public OperationGuideUI OperationGuide => operationGuide;
 

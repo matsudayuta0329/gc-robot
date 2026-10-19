@@ -1,25 +1,32 @@
 using System;
+using System.Threading;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// 会話とロビーの確認ダイアログで共有する。
-public class MessageWindow : AnimatedUIElement
+// 会話文の文字送りと「次へ」だけを扱う。
+public class MessageBox : AnimatedUIElement
 {
-    private MessageWindowPresenter presenter;
-    public MessageWindowPresenter Presenter => presenter ??= new MessageWindowPresenter(this);
-    public void ClearHandlers() { Bind(cancelButton, null); Bind(submitButton, null); }
     [SerializeField] private TMP_Text messageText;
-    [SerializeField] private Button cancelButton;
-    [SerializeField] private Button submitButton;
+    [SerializeField] private Button nextButton;
     [SerializeField, Min(0)] private float characterInterval = 0.04f;
+    private MessageBoxPresenter presenter;
     private int textVersion;
+    public MessageBoxPresenter Presenter => presenter ??= new MessageBoxPresenter(this);
     public bool IsTyping { get; private set; }
 
-    public async Awaitable SetText(string text)
+    public void SetAdvanceHandler(Action handler)
+    {
+        if (nextButton == null) return;
+        nextButton.onClick = new Button.ButtonClickedEvent();
+        if (handler != null) nextButton.onClick.AddListener(() => handler());
+    }
+
+    public async Awaitable SetText(string text, CancellationToken cancellationToken = default)
     {
         int version = ++textVersion;
         if (messageText == null) return;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, destroyCancellationToken);
         messageText.text = text ?? string.Empty;
         messageText.maxVisibleCharacters = int.MaxValue;
         messageText.ForceMeshUpdate();
@@ -33,7 +40,7 @@ public class MessageWindow : AnimatedUIElement
                 messageText.maxVisibleCharacters = i;
                 float end = Time.unscaledTime + characterInterval;
                 while (Time.unscaledTime < end && version == textVersion)
-                    await Awaitable.NextFrameAsync(destroyCancellationToken);
+                    await Awaitable.NextFrameAsync(linked.Token);
             }
         }
         finally
@@ -47,23 +54,6 @@ public class MessageWindow : AnimatedUIElement
         textVersion++;
         IsTyping = false;
         if (messageText != null) messageText.maxVisibleCharacters = int.MaxValue;
-    }
-
-    public void Init(string message, Action cancelHandler, Action submitHandler)
-    {
-        DisplayFullText();
-        if (messageText != null) messageText.text = message ?? string.Empty;
-        Bind(cancelButton, cancelHandler);
-        Bind(submitButton, submitHandler);
-    }
-
-    private static void Bind(Button button, Action handler)
-    {
-        if (button == null) return;
-        // 新しいイベントにしてInspectorの永続リスナーもクリアする。
-        button.onClick = new Button.ButtonClickedEvent();
-        if (handler != null) button.onClick.AddListener(() => handler());
-        button.gameObject.SetActive(handler != null);
     }
 
     public override void Disable()

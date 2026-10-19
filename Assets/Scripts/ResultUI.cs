@@ -16,7 +16,7 @@ public class ResultUI : AnimatedUIElement
 
     internal void SetCount(int count)
     {
-        if (countText != null) countText.text = count.ToString();
+        if (countText != null) countText.text = $"回収したごみ: {count}個";
     }
 
     public override void Enable()

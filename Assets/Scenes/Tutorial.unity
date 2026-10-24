@@ -1027,63 +1027,6 @@ MonoBehaviour:
   messageText: {fileID: 1797670328}
   nextButton: {fileID: 1249377867}
   characterInterval: 0.04
---- !u!1001 &679013751
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3276622900887272186, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7239729810426083600, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
-      propertyPath: m_Name
-      value: Can
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
 --- !u!1 &798643749
 GameObject:
   m_ObjectHideFlags: 0
@@ -1354,26 +1297,51 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialManager
   tutorialData:
   - isTutorial: 0
-    message: "\u3053\u3053\u3067\u64CD\u4F5C\u3092\u7DF4\u7FD2\u3057\u307E\u3057\u3087\u3046\u3002\u307E\u305A\u306F\u524D\u5F8C\u79FB\u52D5\u3068\u65CB\u56DE\u3067\u3059\u3002"
+    message: ""
+    messages:
+    - "\u30c1\u30e5\u30fc\u30c8\u30ea\u30a2\u30eb\u3078\u3088\u3046\u3053\u305d\u3002\u3053\u3053\u3067\u306f\u6383\u9664\u30ed\u30dc\u30c3\u30c8\u306e\u64cd\u4f5c\u3092\u7df4\u7fd2\u3057\u307e\u3059\u3002"
+    - "\u307e\u305a\u306f\u4f55\u3082\u306a\u3044\u5834\u6240\u3067\u3001\u524d\u5f8c\u79fb\u52d5\u3068\u65cb\u56de\u3092\u8a66\u3057\u307e\u3057\u3087\u3046\u3002"
     tutorialAction: 0
   - isTutorial: 1
-    message: "\u524D\u5F8C\u79FB\u52D5\u3068\u65CB\u56DE\u3092\u8A66\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
+    message: "W / S\u3067\u524d\u5f8c\u79fb\u52d5\u3001A / D\u3067\u65cb\u56de\u3057\u3066\u304f\u3060\u3055\u3044\u3002"
+    messages: []
     tutorialAction: 0
   - isTutorial: 0
-    message: "\u6B21\u306F\u5438\u5F15\u3067\u3059\u3002\u8FD1\u304F\u306E\u3054\u307F\u306B\u8FD1\u3065\u3044\u3066\u56DE\u53CE\u3057\u307E\u3057\u3087\u3046\u3002"
+    message: ""
+    messages:
+    - "\u3044\u3044\u3067\u3059\u306d\u3002\u6b21\u306f\u3054\u307f\u306e\u5438\u5f15\u3067\u3059\u3002"
+    - "4\u7a2e\u985e\u306e\u3054\u307f\u304c\u73fe\u308c\u307e\u3059\u3002\u5de6\u30af\u30ea\u30c3\u30af\u3067\u3001\u3059\u3079\u3066\u56de\u53ce\u3057\u3066\u304f\u3060\u3055\u3044\u3002"
     tutorialAction: 0
   - isTutorial: 1
-    message: "\u5438\u5F15\u30DC\u30BF\u30F3\u3092\u62BC\u3057\u3066\u3054\u307F\u3092\u56DE\u53CE\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
+    message: "\u5de6\u30af\u30ea\u30c3\u30af\u30674\u7a2e\u985e\u306e\u3054\u307f\u3092\u3059\u3079\u3066\u5438\u5f15\u3057\u3066\u304f\u3060\u3055\u3044\u3002"
+    messages: []
     tutorialAction: 2
   - isTutorial: 0
-    message: "\u6700\u5F8C\u306B\u30C0\u30C3\u30B7\u30E5\u3092\u8A66\u3057\u307E\u3057\u3087\u3046\u3002\u30C0\u30C3\u30B7\u30E5\u4E2D\u306F\u3054\u307F\u3092\u62FE\u3048\u307E\u3059\u3002"
+    message: ""
+    messages:
+    - "\u6700\u5f8c\u306f\u30c0\u30c3\u30b7\u30e5\u3067\u3059\u3002\u30c0\u30c3\u30b7\u30e5\u306b\u306f\u3054\u307f\u306e\u6240\u6301\u6570\u30925\u6d88\u8cbb\u3057\u307e\u3059\u3002"
+    - "\u524d\u65b9\u306b\u3054\u307f\u304c10\u500b\u73fe\u308c\u307e\u3059\u3002Shift\u3067\u30c0\u30c3\u30b7\u30e5\u3057\u3066\u307f\u307e\u3057\u3087\u3046\u3002"
     tutorialAction: 0
   - isTutorial: 1
-    message: "\u30C0\u30C3\u30B7\u30E5\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
+    message: "Shift\u3067\u30c0\u30c3\u30b7\u30e5\u3057\u3066\u304f\u3060\u3055\u3044\u3002"
+    messages: []
     tutorialAction: 1
   - isTutorial: 0
-    message: "\u7DF4\u7FD2\u306F\u7D42\u4E86\u3067\u3059\u3002\u672C\u756A\u3067\u306F\u5236\u9650\u6642\u9593\u5185\u306B\u3054\u307F\u3092\u3067\u304D\u308B\u3060\u3051\u96C6\u3081\u307E\u3057\u3087\u3046\u3002\u30ED\u30D3\u30FC\u3078\u79FB\u52D5\u3057\u307E\u3059\u3002"
+    message: ""
+    messages:
+    - "\u7df4\u7fd2\u306f\u7d42\u4e86\u3067\u3059\u3002\u672c\u756a\u3067\u306f\u5236\u9650\u6642\u9593\u5185\u306b\u3054\u307f\u3092\u3067\u304d\u308b\u3060\u3051\u96c6\u3081\u307e\u3057\u3087\u3046\u3002"
+    - "\u30ed\u30d3\u30fc\u3078\u79fb\u52d5\u3057\u307e\u3059\u3002"
     tutorialAction: 0
+  trashTypes:
+  - prefab: {fileID: 7239729810426083600, guid: a1ca47efc607b154f9c6dfa2d434ab65, type: 3}
+    size: 2
+  - prefab: {fileID: 906439926654241486, guid: 0119e5acb95d466489a0ccb32fdfb0ed, type: 3}
+    size: 1
+  - prefab: {fileID: 7912254271957510716, guid: f56678e2649c30945ab2bb6bd6fd74eb, type: 3}
+    size: 3
+  - prefab: {fileID: 3139360669454806265, guid: 3e9d618cc1681c54ea399507694e4917, type: 3}
+    size: 2
+  dashTrashCount: 10
   tutorialUI: {fileID: 1516920874}
   uiParent: {fileID: 1786686008}
   inputReader: {fileID: 1137504051}
@@ -2654,4 +2622,3 @@ SceneRoots:
   - {fileID: 1137504049}
   - {fileID: 54039851}
   - {fileID: 1037294951}
-  - {fileID: 679013751}

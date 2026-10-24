@@ -10,10 +10,20 @@ public class TutorialManager : MonoBehaviour
     {
         public bool isTutorial;
         [TextArea] public string message;
+        public List<string> messages = new List<string>();
         public ActionType tutorialAction;
     }
 
+    [Serializable]
+    public class TrashEntry
+    {
+        public GameObject prefab;
+        [Range(1, 3)] public int size = 1;
+    }
+
     [SerializeField] private List<TutorialData> tutorialData = new List<TutorialData>();
+    [SerializeField] private List<TrashEntry> trashTypes = new List<TrashEntry>();
+    [SerializeField, Min(1)] private int dashTrashCount = 10;
     [SerializeField] private TutorialUI tutorialUI;
     [SerializeField] private UIParent uiParent;
     [SerializeField] private InputReader inputReader;
@@ -25,9 +35,9 @@ public class TutorialManager : MonoBehaviour
     private float forwardTravel;
     private float backwardTravel;
     private float turnTravel;
-    private int collectedBeforeExperience;
-    private bool dashStarted;
+    private bool dashObserved;
     private GarbageCounter garbageCounter;
+    private readonly List<Garbage> activeWave = new List<Garbage>();
 
     private async void Start()
     {
@@ -36,7 +46,6 @@ public class TutorialManager : MonoBehaviour
             Debug.LogError("TutorialManager: TutorialUIと子UI、InputReader、UIParent、Playerを設定してください。", this);
             return;
         }
-        inputReader.ActionPerformed += OnActionPerformed;
         var presenter = tutorialUI.Presenter;
         garbageCounter = player.GetComponent<GarbageCounter>();
         presenter.Bind(garbageCounter);
@@ -48,33 +57,39 @@ public class TutorialManager : MonoBehaviour
             foreach (var data in tutorialData)
             {
                 if (data == null) continue;
-                nextRequested = false;
                 isExperience = data.isTutorial;
                 currentAction = data.tutorialAction;
                 forwardTravel = 0f;
                 backwardTravel = 0f;
                 turnTravel = 0f;
-                dashStarted = false;
-                collectedBeforeExperience = garbageCounter != null ? garbageCounter.CollectedCount : 0;
+                dashObserved = false;
                 if (data.isTutorial)
                 {
                     presenter.Message.Hide();
+                    if (currentAction == ActionType.Vacuum) SpawnWave(false);
+                    else if (currentAction == ActionType.Dash) SpawnWave(true);
                     var types = new[] { ActionType.Move, data.tutorialAction };
                     presenter.Guide.Show(data.message, new[] { data.tutorialAction });
-                    if (player != null) player.SetPaused(false);
+                    player.SetPaused(false);
                     inputReader.SetEnableAction(types);
+                    nextRequested = false;
+                    while (!nextRequested)
+                    {
+                        await Awaitable.NextFrameAsync(destroyCancellationToken);
+                        UpdateExperience();
+                    }
                 }
                 else
                 {
                     inputReader.SetEnableAction(Array.Empty<ActionType>());
-                    if (player != null) player.SetPaused(true);
+                    player.SetPaused(true);
                     presenter.Guide.Hide();
-                    await presenter.Message.ShowMessage(data.message, Advance);
-                }
-                while (!nextRequested)
-                {
-                    await Awaitable.NextFrameAsync(destroyCancellationToken);
-                    if (isExperience) UpdateExperience();
+                    if (data.messages != null && data.messages.Count > 0)
+                    {
+                        foreach (var line in data.messages)
+                            await ShowLine(line, presenter);
+                    }
+                    else await ShowLine(data.message, presenter);
                 }
             }
             inputReader.SetEnableAction(Array.Empty<ActionType>());
@@ -88,10 +103,46 @@ public class TutorialManager : MonoBehaviour
         catch (Exception exception) { Debug.LogException(exception, this); }
         finally
         {
-            if (inputReader != null) inputReader.ActionPerformed -= OnActionPerformed;
             presenter.Dispose();
             if (player != null) player.SetPaused(true);
             if (inputReader != null) inputReader.SetEnableAction(Array.Empty<ActionType>());
+        }
+    }
+
+    private async Awaitable ShowLine(string line, TutorialUIPresenter presenter)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return;
+        nextRequested = false;
+        await presenter.Message.ShowMessage(line, Advance);
+        while (!nextRequested)
+            await Awaitable.NextFrameAsync(destroyCancellationToken);
+        presenter.Message.Hide();
+        await tutorialUI.MessageBox.WaitForTransition(destroyCancellationToken);
+    }
+
+    private void SpawnWave(bool forDash)
+    {
+        activeWave.Clear();
+        if (trashTypes.Count == 0) return;
+
+        Vector3 forward = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
+        Vector3 right = Vector3.Cross(Vector3.up, forward);
+        int count = forDash ? dashTrashCount : trashTypes.Count;
+        for (int i = 0; i < count; i++)
+        {
+            var entry = trashTypes[i % trashTypes.Count];
+            if (entry == null || entry.prefab == null) continue;
+            Vector3 offset = forDash
+                ? forward * (2f + i * 1.2f) + right * (i % 2 == 0 ? 0.5f : -0.5f)
+                : Quaternion.Euler(0f, i * 360f / count, 0f) * forward * 3f;
+            var instance = Instantiate(entry.prefab, player.transform.position + offset, Quaternion.identity);
+            if (!instance.TryGetComponent(out Garbage garbage))
+            {
+                Destroy(instance);
+                continue;
+            }
+            garbage.Init(entry.size);
+            activeWave.Add(garbage);
         }
     }
 
@@ -115,21 +166,13 @@ public class TutorialManager : MonoBehaviour
                 nextRequested = forwardTravel >= 0.2f && backwardTravel >= 0.2f && turnTravel >= 0.2f;
                 break;
             case ActionType.Vacuum:
-                nextRequested = garbageCounter != null &&
-                    garbageCounter.CollectedCount > collectedBeforeExperience;
+                nextRequested = activeWave.Count > 0 &&
+                    activeWave.TrueForAll(garbage => garbage == null || garbage.IsCollected);
                 break;
             case ActionType.Dash:
-                nextRequested = dashStarted && player != null && !player.IsDashing;
+                if (player.IsDashing) dashObserved = true;
+                nextRequested = dashObserved && !player.IsDashing;
                 break;
         }
     }
-
-    // ダッシュは入力時に始まり、終了後に次へ進む。
-    private void OnActionPerformed(ActionType action)
-    {
-        if (!isExperience || action != currentAction) return;
-        if (action == ActionType.Dash) dashStarted = true;
-        else if (action != ActionType.Move && action != ActionType.Vacuum) nextRequested = true;
-    }
-
 }

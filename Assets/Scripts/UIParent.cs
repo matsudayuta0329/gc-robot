@@ -17,10 +17,29 @@ public class UIParent : MonoBehaviour
     private bool animationCompleted;
     private bool resultShown;
     private bool busy;
+    private float normalAnimatorSpeed = 1f;
+    private float startPlaybackElapsed;
     private AnimatorOverrideController overrideController;
     private bool HasAnimator => animator != null && animator.runtimeAnimatorController != null;
 
-    private void Awake() => ConfigureAnimator();
+    private void Awake()
+    {
+        if (animator != null) normalAnimatorSpeed = animator.speed;
+        ConfigureAnimator();
+    }
+
+    private void Update()
+    {
+        if (phase != "startGame" || animationCompleted || !HasAnimator) return;
+
+        // 長いフレームでも、画面に出せなかったAnimationのコマを一度に飛ばさない。
+        float frameRate = startGameAnimation != null ? startGameAnimation.frameRate : 60f;
+        float frameDuration = 1f / Mathf.Max(1f, frameRate);
+        float elapsed = Time.unscaledDeltaTime;
+        float animatedTime = Mathf.Min(elapsed, frameDuration);
+        animator.speed = normalAnimatorSpeed * (elapsed > 0f ? animatedTime / elapsed : 1f);
+        startPlaybackElapsed += animatedTime * normalAnimatorSpeed;
+    }
 
     private void ConfigureAnimator()
     {
@@ -45,9 +64,21 @@ public class UIParent : MonoBehaviour
             foreach (var element in elements)
                 if (element != null && element != resultUI) element.PrepareEnable();
             if (resultUI != null) resultUI.PrepareEnable();
+            if (HasAnimator)
+            {
+                // シーン有効化のフレームでは先頭姿勢を保持し、描画が始まってから再生する。
+                animator.Play("Base Layer.BeforeStartGame", 0, 0f);
+                animator.Update(0f);
+                await Awaitable.NextFrameAsync(linked.Token);
+            }
             await Play("startGame", linked.Token);
         }
-        finally { phase = null; busy = false; }
+        finally
+        {
+            if (animator != null) animator.speed = normalAnimatorSpeed;
+            phase = null;
+            busy = false;
+        }
     }
 
     public async Awaitable FinishAsync(CancellationToken cancellationToken = default)
@@ -77,6 +108,7 @@ public class UIParent : MonoBehaviour
         token.ThrowIfCancellationRequested();
         phase = trigger;
         animationCompleted = false;
+        if (trigger == "startGame") startPlaybackElapsed = 0f;
         if (!HasAnimator)
         {
             if (trigger == "startGame") EnableElements();
@@ -87,6 +119,8 @@ public class UIParent : MonoBehaviour
         else
         {
             animator.updateMode = AnimatorUpdateMode.UnscaledTime;
+            // NextFrameAsyncがUpdateより後に再開した場合も、未調整の大きな時間で進めない。
+            if (trigger == "startGame") animator.speed = 0f;
             animator.ResetTrigger("startGame");
             animator.ResetTrigger("endGame");
             animator.ResetTrigger("nextScene");
@@ -96,7 +130,7 @@ public class UIParent : MonoBehaviour
         while (!animationCompleted)
         {
             if (!isActiveAndEnabled) throw new OperationCanceledException("UIParent disabled.");
-            if (Time.unscaledTime >= deadline)
+            if ((trigger == "startGame" ? startPlaybackElapsed >= animationTimeout : Time.unscaledTime >= deadline))
                 throw new InvalidOperationException(name + ": " + trigger + "の完了イベントがありません。");
             await Awaitable.NextFrameAsync(token);
         }

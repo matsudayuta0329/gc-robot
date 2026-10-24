@@ -41,7 +41,7 @@ public class Player : MonoBehaviour
             maxSpeed, rMaxSpeed, acceleration, rAcceleration,
             dashLength, dashChargeTime, dashExpandedScale,
             dashInitialSpeedMultiplier, dashCollisionMargin,
-            amount => garbageCounter.CountDown(amount));
+            amount => garbageCounter.TrySpend(amount));
         movement.SetPaused(isPaused);
         pickupGarbage = new PickupGarbage(
             suctionPortPivot, pickupPivot, pickupRadius,

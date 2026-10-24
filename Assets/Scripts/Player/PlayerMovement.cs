@@ -5,6 +5,7 @@ using UnityEngine;
 public class PlayerMovement
 {
     private const float DashTime = 0.1f;
+    private const int DashCost = 5;
 
     private readonly CharacterController characterController;
     private readonly Transform playerTransform;
@@ -18,7 +19,7 @@ public class PlayerMovement
     private readonly Vector3 dashExpandedScale;
     private readonly float dashInitialSpeedMultiplier;
     private readonly float dashCollisionMargin;
-    private readonly Action<int> consumeGarbage;
+    private readonly Func<int, bool> tryConsumeGarbage;
     private readonly RaycastHit[] dashHits = new RaycastHit[16];
 
     private float velocity;
@@ -45,7 +46,7 @@ public class PlayerMovement
         Vector3 dashExpandedScale,
         float dashInitialSpeedMultiplier,
         float dashCollisionMargin,
-        Action<int> consumeGarbage)
+        Func<int, bool> tryConsumeGarbage)
     {
         this.characterController = characterController;
         this.playerTransform = playerTransform;
@@ -59,7 +60,7 @@ public class PlayerMovement
         this.dashExpandedScale = dashExpandedScale;
         this.dashInitialSpeedMultiplier = dashInitialSpeedMultiplier;
         this.dashCollisionMargin = dashCollisionMargin;
-        this.consumeGarbage = consumeGarbage;
+        this.tryConsumeGarbage = tryConsumeGarbage;
         SetModelScale(Vector3.one);
     }
 
@@ -98,13 +99,13 @@ public class PlayerMovement
 
     public async Awaitable Dash(Func<bool> isActive, CancellationToken cancellationToken)
     {
-        if (!isActive() || IsPaused || IsDashing || dashLength <= 0f) return;
+        if (!isActive() || IsPaused || IsDashing || dashLength <= 0f ||
+            tryConsumeGarbage == null || !tryConsumeGarbage(DashCost)) return;
 
         IsDashing = true;
         IsDashMoving = false;
         velocity = 0f;
         rVelocity = 0f;
-        consumeGarbage?.Invoke(5);
 
         float dashedLength = 0f;
         Vector3 direction = playerTransform.forward;

@@ -29,4 +29,11 @@ public class GarbageCounter: MonoBehaviour
         count -= amount;
         OnUpdateCount?.Invoke(count);
     }
+
+    public bool TrySpend(int amount)
+    {
+        if (amount < 0 || count < amount) return false;
+        CountDown(amount);
+        return true;
+    }
 }

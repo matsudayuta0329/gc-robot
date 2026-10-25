@@ -32,6 +32,7 @@ public class PlayerMovement
     public bool IsDashMoving { get; private set; }
     public float Velocity => velocity;
     public Vector3 DashExitDirection => dashExitDirection;
+    public event Action DashStarted;
 
     public PlayerMovement(
         CharacterController characterController,
@@ -129,6 +130,7 @@ public class PlayerMovement
             SetModelScale(dashExpandedScale);
 
             IsDashMoving = true;
+            DashStarted?.Invoke();
             bool touchedWall = false;
             bool canGlideAfterDash = true;
             Vector3 exitDirection = direction;

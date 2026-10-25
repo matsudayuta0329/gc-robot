@@ -13,10 +13,12 @@ public class TitleManager : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private string startTrigger = "Start";
     [SerializeField] private string tutorialScene;
+    [SerializeField] private SceneBgm bgm = new SceneBgm();
     private bool isStarting;
 
     private void Awake()
     {
+        bgm?.Play(gameObject);
         if (startButton != null) startButton.onClick.AddListener(OnStartButtonClicked);
         if (creditsButton != null) creditsButton.onClick.AddListener(OpenCredits);
         if (closeCreditsButton != null) closeCreditsButton.onClick.AddListener(CloseCredits);

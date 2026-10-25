@@ -21,6 +21,13 @@
 
 ## シーンの流れ
 
+### 音声の設定
+
+`Assets/SRC/Player.prefab`の`Player`に、移動・吸引・ダッシュ用のAudioClipを割り当てます。移動と吸引はループ、ダッシュは実際にダッシュ移動を開始した時だけ単発で再生します。吸引音は`vacuumFadeDuration`の間、音量を線形補間してオン・オフします。プレイヤーの音はすべて2Dで、距離による減衰はありません。
+
+Title、Tutorial、Lobby、Gameの各Managerにある`bgm`へシーン用AudioClipを割り当てます。BGMはManagerのあるGameObjectで2D・ループ再生され、シーン終了時に停止します。Clipと音量はシーンごとに差し替えられます。現在のリポジトリには音声ファイルがないため、再生にはAudioClipのインポートと割り当てが必要です。
+
+
 | シーン | Manager | 終了条件と遷移 |
 | --- | --- | --- |
 | Title | TitleManager | スタートボタン → タイトル演出のAnimation Event → Tutorial |
@@ -64,6 +71,7 @@ gc-robot/
 │  │  ├─ NPC.cs                      会話ガイドとメッセージ表示の起動
 │  │  ├─ Gate.cs                     接触判定から確認処理を起動
 │  │  ├─ Garbage.cs                  ごみの吸引進行・回収演出・固有点
+│  │  ├─ SceneBgm.cs                 各Managerから再生する2DループBGM
 │  │  ├─ PlayerCamera.cs             プレイヤーを追従し範囲内に収めるカメラ
 │  │  ├─ Player/
 │  │  │  ├─ Player.cs                 Unity更新処理、入力登録、NPCとの対話

@@ -29,6 +29,7 @@ public class TutorialManager : MonoBehaviour
     [SerializeField] private InputReader inputReader;
     [SerializeField] private Player player;
     [SerializeField] private string lobbyScene;
+    [SerializeField] private SceneBgm bgm = new SceneBgm();
     private bool nextRequested;
     private bool isExperience;
     private ActionType currentAction;
@@ -38,6 +39,8 @@ public class TutorialManager : MonoBehaviour
     private bool dashObserved;
     private GarbageCounter garbageCounter;
     private readonly List<Garbage> activeWave = new List<Garbage>();
+
+    private void Awake() => bgm?.Play(gameObject);
 
     private async void Start()
     {

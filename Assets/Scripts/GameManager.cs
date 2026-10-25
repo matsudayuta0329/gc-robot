@@ -26,6 +26,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private ResultUI resultUI;
     [SerializeField] private UIParent uiParent;
     [SerializeField] private string lobbyScene;
+    [SerializeField] private SceneBgm bgm = new SceneBgm();
     private readonly List<TrashEntry> validTrash = new List<TrashEntry>();
     private readonly List<GameObject> spawnedTrash = new List<GameObject>();
     public float RemainingTime { get; private set; }
@@ -33,6 +34,7 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
+        bgm?.Play(gameObject);
         if (player != null && garbageCounter == null)
             garbageCounter = player.GetComponent<GarbageCounter>();
         if (player != null) player.SetPaused(true);

@@ -10,9 +10,12 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private InputReader inputReader;
     [SerializeField] private ConfirmationDialog confirmationDialog;
     [SerializeField] private MessageBox messageBox;
+    [SerializeField] private SceneBgm bgm = new SceneBgm();
     private bool ready;
     private bool busy;
     public bool IsBusy => busy || !ready;
+
+    private void Awake() => bgm?.Play(gameObject);
 
     private async void Start()
     {

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 9220766776018253929}
   - component: {fileID: 7876902603050060606}
   - component: {fileID: 6624387253294854143}
+  - component: {fileID: 8274491823011220001}
   m_Layer: 0
   m_Name: VacuumTemplate
   m_TagString: Untagged
@@ -4836,3 +4837,24 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+
+--- !u!114 &8274491823011220001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7030014835217714502}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b3bd672c3b94a3b9ef2f63a9a426ef7, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::VacuumParticleFlow
+  length: 3
+  radius: 1.2
+  travelTime: 0.65
+  emissionRate: 65
+  particleSize: 0.12
+  color: {r: 0.6, g: 0.9, b: 1, a: 0.5}
+  particleShader: {fileID: 4800000, guid: b059909429154f959303487edc6d8f25, type: 3}
+  particleTexture: {fileID: 0}

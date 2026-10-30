@@ -32,6 +32,20 @@ public class GameAreaTests
         var field = typeof(Player).GetField("movement", BindingFlags.Instance | BindingFlags.NonPublic);
         return (PlayerMovement)field.GetValue(player);
     }
+    [Test]
+    public void VacuumParticlesConvergeFromWideDiskToNozzle()
+    {
+        for (uint seed = 1; seed <= 100; seed++)
+        {
+            var start = VacuumParticleFlow.EvaluatePosition(seed, 0, 3, 1.2f);
+            var middle = VacuumParticleFlow.EvaluatePosition(seed, 0.5f, 3, 1.2f);
+            Assert.AreEqual(3f, start.z);
+            Assert.LessOrEqual(new Vector2(start.x, start.y).magnitude, 1.2001f);
+            Assert.Less((middle - start * 0.5f).magnitude, 0.0001f);
+            Assert.AreEqual(Vector3.zero, VacuumParticleFlow.EvaluatePosition(seed, 1, 3, 1.2f));
+        }
+    }
+
     [UnityTest]
     public IEnumerator LoopSoundFadesAndRespectsMaximumAndSceneGain()
     {

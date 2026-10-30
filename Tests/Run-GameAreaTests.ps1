@@ -17,6 +17,8 @@ Copy-Item "$repositoryRoot/Assets/Scripts/*" "$validationRoot/Assets/Runtime" -R
 Copy-Item "$repositoryRoot/Assets/PlayerInputAction.cs" "$validationRoot/Assets/Runtime" -Force
 Copy-Item "$PSScriptRoot/PlayerEffectsTest.shader" "$validationRoot/Assets/Runtime" -Force
 Copy-Item "$repositoryRoot/ProjectSettings/ProjectVersion.txt" "$validationRoot/ProjectSettings" -Force
+New-Item -ItemType Directory -Force "$validationRoot/Assets/Resources" | Out-Null
+Copy-Item "$repositoryRoot/Assets/SRC/VacuumParticles.prefab" "$validationRoot/Assets/Resources" -Force
 Copy-Item "$PSScriptRoot/GameAreaTests.cs" "$validationRoot/Assets/Tests" -Force
 Copy-Item "$PSScriptRoot/UIFlowTests.cs" "$validationRoot/Assets/Tests" -Force
 New-Item -ItemType Directory -Force "$validationRoot/Assets/Editor" | Out-Null

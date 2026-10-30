@@ -33,16 +33,26 @@ public class GameAreaTests
         return (PlayerMovement)field.GetValue(player);
     }
     [Test]
-    public void VacuumParticlesConvergeFromWideDiskToNozzle()
+    public void VacuumPrefabConvergesWithoutRuntimeScripts()
     {
-        for (uint seed = 1; seed <= 100; seed++)
+        var prefab = Resources.Load<GameObject>("VacuumParticles");
+        Assert.IsNotNull(prefab);
+        var go = UnityEngine.Object.Instantiate(prefab);
+        objects.Add(go);
+        Assert.AreEqual(0, go.GetComponents<MonoBehaviour>().Length);
+        var system = go.GetComponent<ParticleSystem>();
+        Assert.Less(system.main.startSpeed.constant, 0);
+        Assert.AreEqual(ParticleSystemShapeType.Cone, system.shape.shapeType);
+        system.Emit(100);
+        var particles = new ParticleSystem.Particle[100];
+        int count = system.GetParticles(particles);
+        Assert.AreEqual(100, count);
+        foreach (var particle in particles)
         {
-            var start = VacuumParticleFlow.EvaluatePosition(seed, 0, 3, 1.2f);
-            var middle = VacuumParticleFlow.EvaluatePosition(seed, 0.5f, 3, 1.2f);
-            Assert.AreEqual(3f, start.z);
-            Assert.LessOrEqual(new Vector2(start.x, start.y).magnitude, 1.2001f);
-            Assert.Less((middle - start * 0.5f).magnitude, 0.0001f);
-            Assert.AreEqual(Vector3.zero, VacuumParticleFlow.EvaluatePosition(seed, 1, 3, 1.2f));
+            Assert.AreEqual(3f, particle.position.z, 0.01f);
+            var end = particle.position + particle.velocity * particle.startLifetime;
+            Assert.Less(end.magnitude, 0.3f);
+            Assert.GreaterOrEqual(end.z, -0.01f);
         }
     }
 

@@ -234,4 +234,6 @@ PlayerのmoveVolume・vacuumVolume・dashVolumeは各SEの最大音量です。m
 
 ### 吸引パーティクル
 
-PlayerのPortに配置されたVacuumParticlesは、VacuumParticleFlowで前方の広い円盤から吸引口へ収束します。length・radiusでコーンの長さと広がり、travelTimeで到達時間、emissionRate・particleSize・colorで量と見た目を調整できます。particleTextureは差し替え可能で、未設定時は柔らかい円形テクスチャを生成します。再生・停止は従来どおりPlayerEffectsが管理し、吸引開始ごとに粒子をクリアして再生します。
+PlayerのPort配下のVacuum Particlesを選択し、SceneビューのParticle EffectパネルからPlayで確認できます。Play Modeは不要です。設定はVacuumParticles.prefabに保存し、実行時の設定・粒子位置の書換えスクリプトは使用しません。PlayerEffectsは開始時のクリア・再生と停止だけを担当します。
+
+ShapeはCone、Position Z=3、Radius=1.2、Angle=21.8014度。Start Speed=-5で広い円盤から吸引口へ逆向きに進み、Lifetime=0.6秒で口元の狭い範囲に到達して消えます。Size/Color over Lifetimeで縮小・フェードします。Main・Emission・Shapeと割当済みのVacuumParticlesマテリアルをInspectorで直接編集できます。モデル階層の倍率・回転はPlayerプレハブ内のパーティクルTransformで補正済みです。

@@ -33,27 +33,32 @@ public class GameAreaTests
         return (PlayerMovement)field.GetValue(player);
     }
     [Test]
-    public void PlayerEffectsBuildsReversedDenseConeAndSquareSmokeFallback()
+    public void PlayerEffectsRestartsVacuumParticlesAndKeepsSquareSmokeFallback()
     {
         var go = Create("effects", false);
+        var vacuum = new GameObject("Vacuum Particles").AddComponent<ParticleSystem>();
+        vacuum.transform.SetParent(go.transform, false);
+        var main = vacuum.main;
+        main.playOnAwake = false;
+        main.loop = true;
         var effects = go.AddComponent<PlayerEffects>();
         var shader = Shader.Find("Hidden/PlayerEffectsTest");
         Assert.IsNotNull(shader);
-        Set(effects, "vacuumShader", shader);
+        Set(effects, "vacuumParticleRoot", vacuum.transform);
         Set(effects, "movementShader", shader);
         go.SetActive(true);
         Assert.IsTrue(effects.enabled);
-
-        var mesh = go.transform.Find("Vacuum Field").GetComponent<MeshFilter>().sharedMesh;
-        Assert.AreEqual((64 + 1) * (32 + 1), mesh.vertexCount);
-        Assert.Less(new Vector2(mesh.vertices[0].x, mesh.vertices[0].y).magnitude,
-            new Vector2(mesh.vertices[65 * 32].x, mesh.vertices[65 * 32].y).magnitude);
-
-        var fieldMaterial = go.transform.Find("Vacuum Field").GetComponent<MeshRenderer>().sharedMaterial;
-        var noise = fieldMaterial.GetTexture("_NoiseTex") as Texture2D;
-        Assert.IsNotNull(noise);
-        Assert.AreEqual(TextureWrapMode.Repeat, noise.wrapMode);
-        Assert.AreEqual(64, noise.width);
+        Assert.IsFalse(vacuum.isPlaying);
+        effects.Tick(true, false);
+        Assert.IsTrue(vacuum.isPlaying);
+        vacuum.Simulate(0.5f, true, false);
+        Assert.Greater(vacuum.time, 0f);
+        effects.Tick(false, false);
+        Assert.IsFalse(vacuum.isPlaying);
+        Assert.AreEqual(0, vacuum.particleCount);
+        effects.Tick(true, false);
+        Assert.IsTrue(vacuum.isPlaying);
+        Assert.Less(vacuum.time, 0.5f);
 
         foreach (var side in new[] { "Left Wheel Effects", "Right Wheel Effects" })
         {

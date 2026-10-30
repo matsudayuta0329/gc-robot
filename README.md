@@ -201,7 +201,7 @@ LobbyManagerへPlayer、InputReader、UIParent、MessageBox、ConfirmationDialog
 - PickupGarbage：吸引・ダッシュ中のごみ検出と回収、GarbageCounterへの記録、吸引マテリアル演出。
 - PlayerEffects：吸引時の開いた先細り円柱、移動時の左右タイヤ跡と煙を管理します。Playerが吸引・移動状態を渡します。
 
-PlayerプレハブのPlayerEffectsにはVacuumFieldとMovementEffectシェーダーを設定済みです。吸引はプレイヤー側が細く前方が広い、ふたのない円柱形です。フレネルで端を薄い水色にし、プレイヤー側ほど透明にします。繰り返し可能なノイズテクスチャを起動時に自動生成し、側面の頂点を法線方向へ動かします。しきい値も時間で変化します。`vacuumMaxAlpha`は0～0.5です。タイヤ跡は半透明の黒いTrailRenderer、煙は四角いParticleSystemです。`smokeTexture`が未指定なら白い四角を使用し、指定すれば煙の見た目を差し替えられます。サイズ、透明度、発生率、タイヤ間隔はPlayerEffectsのInspectorから変更できます。
+Playerプレハブには設定用の`Vacuum Particles`オブジェクトを配置し、吸引中だけPlayerEffectsが再生します。吸引を止めると粒子を消去し、次回の吸引は先頭から再生します。形状・色・放出量などはPlayerプレハブ内のParticle Systemで設定してください。タイヤ跡は半透明の黒いTrailRenderer、煙は四角いParticleSystemです。`smokeTexture`が未指定なら白い四角を使用し、指定すれば煙の見た目を差し替えられます。サイズ、透明度、発生率、タイヤ間隔はPlayerEffectsのInspectorから変更できます。
 
 ## 検証
 

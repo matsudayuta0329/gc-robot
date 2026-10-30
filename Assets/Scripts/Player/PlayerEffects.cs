@@ -5,12 +5,8 @@ using UnityEngine.Rendering;
 public sealed class PlayerEffects : MonoBehaviour
 {
     [Header("Vacuum")]
-    [SerializeField] private Transform suctionPort;
-    [SerializeField] private Shader vacuumShader;
-    [SerializeField, Min(0.1f)] private float vacuumLength = 2.2f;
-    [SerializeField, Min(0.01f)] private float portRadius = 0.45f;
-    [SerializeField, Min(0.001f)] private float tipRadius = 0.04f;
-    [SerializeField, Range(0f, 0.5f)] private float vacuumMaxAlpha = 0.35f;
+    [SerializeField] private Transform vacuumParticleRoot;
+    private ParticleSystem vacuumParticles;
 
     [Header("Movement")]
     [SerializeField] private Shader movementShader;
@@ -23,43 +19,30 @@ public sealed class PlayerEffects : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float smokeAlpha = 0.18f;
     [SerializeField, Min(0f)] private float smokeRate = 18f;
 
-    private GameObject vacuumObject;
-    private Material vacuumMaterial;
     private Material movementMaterial;
     private Material smokeMaterial;
-    private Texture2D generatedNoise;
-    private Mesh vacuumMesh;
     private readonly TrailRenderer[] trails = new TrailRenderer[2];
     private readonly ParticleSystem[] smoke = new ParticleSystem[2];
     private Vector3 previousPosition;
+    private bool vacuumActive;
     private bool initialized;
 
     private void Awake()
     {
-        if (vacuumShader == null || movementShader == null)
+        if (vacuumParticleRoot != null)
+            vacuumParticles = vacuumParticleRoot.GetComponent<ParticleSystem>();
+        if (movementShader == null)
         {
-            Debug.LogError("PlayerEffects: Vacuum and movement shaders must be assigned.", this);
+            Debug.LogError("PlayerEffects: Movement shader must be assigned.", this);
             enabled = false;
             return;
         }
 
-        generatedNoise = CreateRepeatNoise();
-        vacuumMaterial = new Material(vacuumShader) { name = "Vacuum Field (Runtime)" };
-        vacuumMaterial.SetTexture("_NoiseTex", generatedNoise);
-        vacuumMaterial.SetFloat("_MaxAlpha", vacuumMaxAlpha);
+        if (vacuumParticles != null)
+            vacuumParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         movementMaterial = new Material(movementShader) { name = "Tire Trail (Runtime)" };
         smokeMaterial = new Material(movementShader) { name = "Smoke (Runtime)" };
         smokeMaterial.SetTexture("_BaseMap", smokeTexture != null ? smokeTexture : Texture2D.whiteTexture);
-
-        vacuumMesh = CreateOpenTaperedCylinder(64, 32);
-        vacuumObject = new GameObject("Vacuum Field");
-        vacuumObject.transform.SetParent(transform, false);
-        vacuumObject.AddComponent<MeshFilter>().sharedMesh = vacuumMesh;
-        var vacuumRenderer = vacuumObject.AddComponent<MeshRenderer>();
-        vacuumRenderer.sharedMaterial = vacuumMaterial;
-        vacuumRenderer.shadowCastingMode = ShadowCastingMode.Off;
-        vacuumRenderer.receiveShadows = false;
-        vacuumObject.SetActive(false);
 
         for (int i = 0; i < 2; i++)
         {
@@ -121,14 +104,12 @@ public sealed class PlayerEffects : MonoBehaviour
         if (!initialized) return;
         bool moving = movingAllowed && (transform.position - previousPosition).sqrMagnitude > 0.000001f;
         previousPosition = transform.position;
-        vacuumObject.SetActive(vacuuming);
-        if (vacuuming)
+        if (vacuuming != vacuumActive && vacuumParticles != null)
         {
-            vacuumObject.transform.SetPositionAndRotation(
-                suctionPort != null ? suctionPort.position : transform.position + transform.forward,
-                transform.rotation);
-            vacuumMaterial.SetFloat("_MaxAlpha", vacuumMaxAlpha);
+            vacuumParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            if (vacuuming) vacuumParticles.Play(true);
         }
+        vacuumActive = vacuuming;
         for (int i = 0; i < 2; i++)
         {
             trails[i].emitting = moving;
@@ -140,7 +121,9 @@ public sealed class PlayerEffects : MonoBehaviour
     private void OnDisable()
     {
         if (!initialized) return;
-        vacuumObject.SetActive(false);
+        if (vacuumParticles != null)
+            vacuumParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        vacuumActive = false;
         for (int i = 0; i < 2; i++)
         {
             trails[i].emitting = false;
@@ -150,71 +133,8 @@ public sealed class PlayerEffects : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (vacuumMaterial != null) Destroy(vacuumMaterial);
         if (movementMaterial != null) Destroy(movementMaterial);
         if (smokeMaterial != null) Destroy(smokeMaterial);
-        if (generatedNoise != null) Destroy(generatedNoise);
-        if (vacuumMesh != null) Destroy(vacuumMesh);
     }
 
-    private Mesh CreateOpenTaperedCylinder(int sides, int rings)
-    {
-        var vertices = new Vector3[(sides + 1) * (rings + 1)];
-        var normals = new Vector3[vertices.Length];
-        var uvs = new Vector2[vertices.Length];
-        var triangles = new int[sides * rings * 6];
-        for (int ring = 0; ring <= rings; ring++)
-        {
-            float t = (float)ring / rings;
-            // The narrow end begins at the suction port; the opening faces outward.
-            float radius = Mathf.Lerp(tipRadius, portRadius, t);
-            for (int side = 0; side <= sides; side++)
-            {
-                float u = (float)side / sides;
-                float angle = u * Mathf.PI * 2f;
-                var radial = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
-                int index = ring * (sides + 1) + side;
-                vertices[index] = radial * radius + Vector3.forward * (t * vacuumLength);
-                normals[index] = new Vector3(radial.x, radial.y, -(portRadius - tipRadius) / vacuumLength).normalized;
-                uvs[index] = new Vector2(u, t);
-                if (ring == rings || side == sides) continue;
-                int next = index + sides + 1;
-                int tri = (ring * sides + side) * 6;
-                triangles[tri] = index;
-                triangles[tri + 1] = next;
-                triangles[tri + 2] = index + 1;
-                triangles[tri + 3] = index + 1;
-                triangles[tri + 4] = next;
-                triangles[tri + 5] = next + 1;
-            }
-        }
-        var mesh = new Mesh { name = "Open Vacuum Field" };
-        mesh.vertices = vertices;
-        mesh.normals = normals;
-        mesh.uv = uvs;
-        mesh.triangles = triangles;
-        return mesh;
-    }
-
-    private static Texture2D CreateRepeatNoise()
-    {
-        const int size = 64;
-        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Vacuum Noise (Runtime)", wrapMode = TextureWrapMode.Repeat };
-        var pixels = new Color[size * size];
-        for (int y = 0; y < size; y++)
-        for (int x = 0; x < size; x++)
-        {
-            float u = (float)x / size;
-            float v = (float)y / size;
-            float a = Mathf.PerlinNoise(u * 4f, v * 4f);
-            float b = Mathf.PerlinNoise((u - 1f) * 4f, v * 4f);
-            float c = Mathf.PerlinNoise(u * 4f, (v - 1f) * 4f);
-            float d = Mathf.PerlinNoise((u - 1f) * 4f, (v - 1f) * 4f);
-            float value = Mathf.Lerp(Mathf.Lerp(a, b, u), Mathf.Lerp(c, d, u), v);
-            pixels[y * size + x] = new Color(value, value, value, 1f);
-        }
-        texture.SetPixels(pixels);
-        texture.Apply();
-        return texture;
-    }
 }

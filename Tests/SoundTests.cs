@@ -6,6 +6,76 @@ using UnityEngine.TestTools;
 public class SoundTests
 {
     [Test]
+    public void CollectionEventDoesNotFireOnSpendingOrReset()
+    {
+        var go = new GameObject("counter");
+        try
+        {
+            var counter = go.AddComponent<GarbageCounter>();
+            int sounds = 0;
+            counter.OnCollected += () => sounds++;
+            counter.RecordCollection(3);
+            Assert.AreEqual(1, sounds);
+            counter.TrySpend(1);
+            counter.ResetCount();
+            Assert.AreEqual(1, sounds);
+            counter.RecordCollection(1);
+            Assert.AreEqual(2, sounds);
+        }
+        finally { Object.DestroyImmediate(go); }
+    }
+
+    [Test]
+    public void BgmFollowsSceneFadeInAndOut()
+    {
+        var go = new GameObject("bgm");
+        try
+        {
+            var ui = go.AddComponent<UIParent>();
+            var source = go.AddComponent<AudioSource>();
+            var fade = go.AddComponent<SceneBgmFade>();
+            fade.Initialize(source, 0.4f, ui);
+            var gain = typeof(UIParent).GetField("<SoundEffectVolume>k__BackingField",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var tick = typeof(SceneBgmFade).GetMethod("LateUpdate",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            foreach (float level in new[] { 0f, 0.5f, 1f, 0.5f, 0f })
+            {
+                gain.SetValue(ui, level);
+                tick.Invoke(fade, null);
+                Assert.AreEqual(0.4f * Mathf.SmoothStep(0, 1, level), source.volume, 0.0001f);
+            }
+        }
+        finally { Object.DestroyImmediate(go); }
+    }
+
+    [Test]
+    public void ResetRankingPreservesOtherPreferences()
+    {
+        const string key = "GcRobot.ScoreRanking.v1";
+        const string other = "GcRobot.Test.ResetSentinel";
+        bool hadRanking = PlayerPrefs.HasKey(key);
+        string original = PlayerPrefs.GetString(key);
+        bool hadOther = PlayerPrefs.HasKey(other);
+        int originalOther = PlayerPrefs.GetInt(other);
+        try
+        {
+            PlayerPrefs.SetInt(other, 42);
+            ScoreRanking.Submit("Test", 10);
+            ScoreRanking.Reset();
+            Assert.IsFalse(PlayerPrefs.HasKey(key));
+            Assert.AreEqual(0, ScoreRanking.Entries.Count);
+            Assert.AreEqual(42, PlayerPrefs.GetInt(other));
+        }
+        finally
+        {
+            if (hadRanking) PlayerPrefs.SetString(key, original); else PlayerPrefs.DeleteKey(key);
+            if (hadOther) PlayerPrefs.SetInt(other, originalOther); else PlayerPrefs.DeleteKey(other);
+            PlayerPrefs.Save();
+        }
+    }
+
+    [Test]
     public void PreparedSoundsHaveCorrectDurationAndLoopBoundary()
     {
         foreach (string name in new[] { "moveLoop", "VacuumLoop", "DashStart" })

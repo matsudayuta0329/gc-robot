@@ -1188,6 +1188,8 @@ MonoBehaviour:
   moveVolume: 0.65
   vacuumVolume: 0.6
   dashVolume: 1
+  collectClip: {fileID: 8300000, guid: 4c611c35739e5b14abcabb9e82855c2f, type: 3}
+  collectVolume: 0.7
   moveFadeDuration: 0.2
   vacuumFadeDuration: 0.25
 --- !u!114 &5348000000000000001

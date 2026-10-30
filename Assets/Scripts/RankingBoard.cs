@@ -224,6 +224,11 @@ public sealed class RankingBoard : MonoBehaviour
 
     private void OnDisable() { Close(); RestoreSession(); }
 
+    public void RefreshDisplay()
+    {
+        if (rankingText != null) rankingText.text = BuildText();
+    }
+
     private string BuildText()
     {
         var b=new StringBuilder(); var entries=ScoreRanking.Entries;

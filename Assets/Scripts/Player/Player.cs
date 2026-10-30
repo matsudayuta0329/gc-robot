@@ -26,6 +26,8 @@ public class Player : MonoBehaviour
     [SerializeField] private AudioClip moveClip;
     [SerializeField] private AudioClip vacuumClip;
     [SerializeField] private AudioClip dashClip;
+    [SerializeField] private AudioClip collectClip;
+    [SerializeField, Range(0f, 1f)] private float collectVolume = 0.7f;
     [SerializeField, Range(0f, 1f)] private float moveVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float vacuumVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float dashVolume = 1f;
@@ -40,6 +42,8 @@ public class Player : MonoBehaviour
     private AudioSource moveSource;
     private AudioSource vacuumSource;
     private AudioSource dashSource;
+    private AudioSource collectSource;
+    private GarbageCounter garbageCounter;
     private bool movedThisFixedStep;
     private NPC nearbyNPC;
     private RankingBoard nearbyRankingBoard;
@@ -52,7 +56,7 @@ public class Player : MonoBehaviour
     private void Awake()
     {
         TryGetComponent(out CharacterController characterController);
-        TryGetComponent(out GarbageCounter garbageCounter);
+        TryGetComponent(out garbageCounter);
         movement = new PlayerMovement(
             characterController, transform, model,
             maxSpeed, rMaxSpeed, acceleration, rAcceleration,
@@ -70,6 +74,8 @@ public class Player : MonoBehaviour
         moveSource = CreateAudioSource(moveClip, true, 0f);
         vacuumSource = CreateAudioSource(vacuumClip, true, 0f);
         dashSource = CreateAudioSource(null, false, 1f);
+        collectSource = CreateAudioSource(null, false, 1f);
+        garbageCounter.OnCollected += PlayCollectSound;
 
         inputReader.Dash += HandleDash;
         inputReader.Interact += HandleInteract;
@@ -177,6 +183,7 @@ public class Player : MonoBehaviour
         if (moveSource != null) moveSource.Stop();
         if (vacuumSource != null) { vacuumSource.Stop(); vacuumSource.volume = 0f; }
         if (dashSource != null) dashSource.Stop();
+        if (collectSource != null) collectSource.Stop();
         moveEnvelope = vacuumEnvelope = 0f;
         movedThisFixedStep = false;
     }
@@ -184,6 +191,7 @@ public class Player : MonoBehaviour
     private void OnDestroy()
     {
         if (movement != null) movement.DashStarted -= PlayDashSound;
+        if (garbageCounter != null) garbageCounter.OnCollected -= PlayCollectSound;
         if (inputReader == null) return;
         inputReader.Dash -= HandleDash;
         inputReader.Interact -= HandleInteract;
@@ -211,6 +219,7 @@ public class Player : MonoBehaviour
         FadeLoop(vacuumSource, canPlay && inputReader.GetIsCollect(),
             vacuumVolume, vacuumFadeDuration, sceneGain, ref vacuumEnvelope);
         if (dashSource != null) dashSource.volume = sceneGain;
+        if (collectSource != null) collectSource.volume = sceneGain;
     }
 
     private static void FadeLoop(AudioSource source, bool requested, float maximumVolume,
@@ -222,6 +231,13 @@ public class Player : MonoBehaviour
         source.volume = Mathf.Clamp01(maximumVolume) * envelope * sceneGain;
         if (requested && !source.isPlaying) source.Play();
         if (!requested && envelope <= 0f && source.isPlaying) source.Stop();
+    }
+
+    private void PlayCollectSound()
+    {
+        if (!isActiveAndEnabled || collectSource == null || collectClip == null) return;
+        collectSource.volume = sceneUI != null ? sceneUI.SoundEffectVolume : 1f;
+        collectSource.PlayOneShot(collectClip, collectVolume);
     }
 
     private void PlayDashSound()

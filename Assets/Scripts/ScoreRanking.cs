@@ -24,6 +24,12 @@ public static class ScoreRanking
         PlayerPrefs.Save();
         return GetRank(count);
     }
+    public static void Reset()
+    {
+        PlayerPrefs.DeleteKey(SaveKey);
+        PlayerPrefs.Save();
+    }
+
     private static SaveData Load()
     {
         if (!PlayerPrefs.HasKey(SaveKey)) return new SaveData();

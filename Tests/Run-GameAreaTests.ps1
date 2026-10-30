@@ -27,6 +27,7 @@ Copy-Item "$PSScriptRoot/SoundTests.cs" "$validationRoot/Assets/Tests" -Force
 Copy-Item "$repositoryRoot/Assets/SRC/Sound" "$validationRoot/Assets/Resources" -Recurse -Force
 Copy-Item "$PSScriptRoot/UIFlowTests.cs" "$validationRoot/Assets/Tests" -Force
 New-Item -ItemType Directory -Force "$validationRoot/Assets/Editor" | Out-Null
+Copy-Item "$repositoryRoot/Assets/Editor/RankingResetMenu.cs" "$validationRoot/Assets/Editor" -Force
 Copy-Item "$repositoryRoot/Assets/Editor/UIAnimationSetup.cs" "$validationRoot/Assets/Editor" -Force
 if (Test-Path "$repositoryRoot/Assets/UIAnimations") {
     Copy-Item "$repositoryRoot/Assets/UIAnimations" "$validationRoot/Assets" -Recurse -Force

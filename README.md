@@ -253,3 +253,11 @@ PC/Mobile RendererへTV Post Effect Featureを登録済みです。カメラのR
 Volume ProfileのAdd Override > Post-processing > TV Post Effectからも設定できます。各項目のOverrideをオンにし強度を上げてください。カメラにコンポーネントがある場合はそちらを優先し、無効化時は効果なしになります。複数カメラではCameraのVolume Layer Maskも確認してください。カメラスタックでは最後に描画するカメラへ設定します。
 
 スキャンラインと色収差以外の効果は追加していません。Screen Space OverlayのUIはカメラ描画後のため対象外です。UIにも適用したい場合はScreen Space Cameraを使ってください。現在のRenderGraph有効設定向けで、Compatibility Modeは対象外です。
+
+### 回収音・BGMフェード・ランキングリセット
+
+PlayerのcollectClipにSRC/Sound/collect.mp3を設定しています。GarbageCounter.RecordCollectionで回収が成立するたびに一度だけ2D単発再生し、同時回収はPlayOneShotで重ねます。ダッシュ消費やカウントリセットでは鳴りません。collectVolumeで最大音量を調整できます。
+
+BGMはSceneBgmFadeがUIParentの開始・遷移アニメーションの進行に合わせてSmoothStepでフェードイン／アウトします。リザルト待機中は通常音量を維持します。最大音量は各Managerのbgm.volumeです。
+
+保存ランキングはUnityのTools > GC Robot > Reset Rankingで消去できます。ランキングのPlayerPrefsキーだけを削除し、ほかの設定は保持します。起動ごとの自動リセットはしません。

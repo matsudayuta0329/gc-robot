@@ -1,6 +1,7 @@
 param(
     [string]$UnityEditor = 'C:/Program Files/Unity/Hub/Editor/6000.3.9f1/Editor/Unity.exe',
-    [switch]$GenerateTemplates
+    [switch]$GenerateTemplates,
+    [string]$TestFilter
 )
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
@@ -14,6 +15,7 @@ foreach ($folder in @('Runtime', 'Tests', 'Editor')) {
 New-Item -ItemType Directory -Force "$validationRoot/Assets/Runtime", "$validationRoot/Assets/Tests", "$validationRoot/Packages", "$validationRoot/ProjectSettings" | Out-Null
 Copy-Item "$repositoryRoot/Assets/Scripts/*" "$validationRoot/Assets/Runtime" -Recurse -Force
 Copy-Item "$repositoryRoot/Assets/PlayerInputAction.cs" "$validationRoot/Assets/Runtime" -Force
+Copy-Item "$PSScriptRoot/PlayerEffectsTest.shader" "$validationRoot/Assets/Runtime" -Force
 Copy-Item "$repositoryRoot/ProjectSettings/ProjectVersion.txt" "$validationRoot/ProjectSettings" -Force
 Copy-Item "$PSScriptRoot/GameAreaTests.cs" "$validationRoot/Assets/Tests" -Force
 Copy-Item "$PSScriptRoot/UIFlowTests.cs" "$validationRoot/Assets/Tests" -Force
@@ -25,6 +27,8 @@ if (Test-Path "$repositoryRoot/Assets/UIAnimations") {
 $dependencies = [ordered]@{}
 $dependencies['com.unity.modules.animation'] = '1.0.0'
 $dependencies['com.unity.modules.physics'] = '1.0.0'
+$dependencies['com.unity.modules.audio'] = '1.0.0'
+$dependencies['com.unity.modules.particlesystem'] = '1.0.0'
 foreach ($packageName in @('com.unity.inputsystem','com.unity.ugui','com.unity.test-framework','com.unity.ext.nunit')) {
     $packageDirectory = Get-ChildItem "$repositoryRoot/Library/PackageCache" -Directory | Where-Object Name -Like "$packageName@*" | Select-Object -First 1
     if ($null -eq $packageDirectory) { throw "Open the project in Unity first to cache $packageName." }
@@ -36,6 +40,7 @@ foreach ($packageName in @('com.unity.inputsystem','com.unity.ugui','com.unity.t
 $resultsPath = "$repositoryRoot/Temp/game-area-results.xml"
 if (Test-Path -LiteralPath $resultsPath) { Remove-Item -LiteralPath $resultsPath }
 $unityArguments = @('-batchmode', '-nographics', '-projectPath', ('"' + $validationRoot + '"'), '-runTests', '-testPlatform', 'PlayMode', '-testResults', ('"' + $resultsPath + '"'), '-logFile', ('"' + "$repositoryRoot/Temp/game-area-tests.log" + '"'))
+if ($TestFilter) { $unityArguments += @('-testFilter', $TestFilter) }
 if ($GenerateTemplates) {
     $unityArguments = @('-batchmode', '-nographics', '-quit', '-projectPath', ('"' + $validationRoot + '"'),
         '-executeMethod', 'UIAnimationSetup.CreateTemplates', '-logFile', ('"' + "$repositoryRoot/Temp/ui-template-build.log" + '"'))

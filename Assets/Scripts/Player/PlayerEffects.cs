@@ -7,7 +7,6 @@ public sealed class PlayerEffects : MonoBehaviour
     [Header("Vacuum")]
     [SerializeField] private Transform suctionPort;
     [SerializeField] private Shader vacuumShader;
-    [SerializeField] private Texture2D noiseTexture;
     [SerializeField, Min(0.1f)] private float vacuumLength = 2.2f;
     [SerializeField, Min(0.01f)] private float portRadius = 0.45f;
     [SerializeField, Min(0.001f)] private float tipRadius = 0.04f;
@@ -44,15 +43,15 @@ public sealed class PlayerEffects : MonoBehaviour
             return;
         }
 
-        generatedNoise = noiseTexture == null ? CreateRepeatNoise() : null;
+        generatedNoise = CreateRepeatNoise();
         vacuumMaterial = new Material(vacuumShader) { name = "Vacuum Field (Runtime)" };
-        vacuumMaterial.SetTexture("_NoiseTex", noiseTexture != null ? noiseTexture : generatedNoise);
+        vacuumMaterial.SetTexture("_NoiseTex", generatedNoise);
         vacuumMaterial.SetFloat("_MaxAlpha", vacuumMaxAlpha);
         movementMaterial = new Material(movementShader) { name = "Tire Trail (Runtime)" };
         smokeMaterial = new Material(movementShader) { name = "Smoke (Runtime)" };
-        if (smokeTexture != null) smokeMaterial.SetTexture("_BaseMap", smokeTexture);
+        smokeMaterial.SetTexture("_BaseMap", smokeTexture != null ? smokeTexture : Texture2D.whiteTexture);
 
-        vacuumMesh = CreateOpenTaperedCylinder(20, 8);
+        vacuumMesh = CreateOpenTaperedCylinder(64, 32);
         vacuumObject = new GameObject("Vacuum Field");
         vacuumObject.transform.SetParent(transform, false);
         vacuumObject.AddComponent<MeshFilter>().sharedMesh = vacuumMesh;
@@ -167,7 +166,8 @@ public sealed class PlayerEffects : MonoBehaviour
         for (int ring = 0; ring <= rings; ring++)
         {
             float t = (float)ring / rings;
-            float radius = Mathf.Lerp(portRadius, tipRadius, t);
+            // The narrow end begins at the suction port; the opening faces outward.
+            float radius = Mathf.Lerp(tipRadius, portRadius, t);
             for (int side = 0; side <= sides; side++)
             {
                 float u = (float)side / sides;
@@ -175,7 +175,7 @@ public sealed class PlayerEffects : MonoBehaviour
                 var radial = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
                 int index = ring * (sides + 1) + side;
                 vertices[index] = radial * radius + Vector3.forward * (t * vacuumLength);
-                normals[index] = new Vector3(radial.x, radial.y, (portRadius - tipRadius) / vacuumLength).normalized;
+                normals[index] = new Vector3(radial.x, radial.y, -(portRadius - tipRadius) / vacuumLength).normalized;
                 uvs[index] = new Vector2(u, t);
                 if (ring == rings || side == sides) continue;
                 int next = index + sides + 1;
@@ -199,7 +199,7 @@ public sealed class PlayerEffects : MonoBehaviour
     private static Texture2D CreateRepeatNoise()
     {
         const int size = 64;
-        var texture = new Texture2D(size, size, TextureFormat.R8, false) { name = "Vacuum Noise (Runtime)", wrapMode = TextureWrapMode.Repeat };
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Vacuum Noise (Runtime)", wrapMode = TextureWrapMode.Repeat };
         var pixels = new Color[size * size];
         for (int y = 0; y < size; y++)
         for (int x = 0; x < size; x++)

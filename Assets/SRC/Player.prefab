@@ -1195,7 +1195,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerEffects
   suctionPort: {fileID: 5226914100653983229}
   vacuumShader: {fileID: 4800000, guid: 27194ad7ee024487bbdce9725f5c5162, type: 3}
-  noiseTexture: {fileID: 0}
   vacuumLength: 2.2
   portRadius: 0.45
   tipRadius: 0.04

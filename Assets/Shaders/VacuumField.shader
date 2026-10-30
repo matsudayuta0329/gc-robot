@@ -6,11 +6,11 @@ Shader "Custom/VacuumField"
         _Color ("Edge Color", Color) = (0.35, 0.85, 1, 0.45)
         _MaxAlpha ("Maximum Alpha", Range(0, 0.5)) = 0.35
         _FresnelPower ("Fresnel Power", Range(0.5, 8)) = 3
-        _NoiseAmplitude ("Normal Displacement", Range(0, 0.5)) = 0.08
-        _NoiseScale ("Noise Scale", Float) = 3
+        _NoiseAmplitude ("Normal Displacement", Range(0, 0.5)) = 0.18
+        _NoiseScale ("Noise Scale", Float) = 4
         _NoiseSpeed ("Noise Speed", Float) = 0.35
         _ThresholdSpeed ("Threshold Speed", Float) = 0.65
-        _TipFadeStart ("Tip Fade Start", Range(0, 1)) = 0.4
+        _TipFadeEnd ("Tip Fade End", Range(0, 1)) = 0.45
     }
     SubShader
     {
@@ -38,14 +38,14 @@ Shader "Custom/VacuumField"
                 float _NoiseScale;
                 float _NoiseSpeed;
                 float _ThresholdSpeed;
-                float _TipFadeStart;
+                float _TipFadeEnd;
             CBUFFER_END
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
                 float2 noiseUV = IN.uv * _NoiseScale + _Time.y * _NoiseSpeed;
                 float noise = SAMPLE_TEXTURE2D_LOD(_NoiseTex, sampler_NoiseTex, noiseUV, 0).r;
-                float threshold = 0.5 + 0.5 * sin(_Time.y * _ThresholdSpeed * 6.2831853);
+                float threshold = 0.5 + 0.15 * sin(_Time.y * _ThresholdSpeed * 6.2831853);
                 float displacement = (noise - threshold) * _NoiseAmplitude;
                 float3 positionOS = IN.positionOS.xyz + IN.normalOS * displacement;
                 float3 positionWS = TransformObjectToWorld(positionOS);
@@ -59,8 +59,10 @@ Shader "Custom/VacuumField"
             half4 frag(Varyings IN) : SV_Target
             {
                 half fresnel = pow(1 - saturate(abs(dot(normalize(IN.normalWS), normalize(IN.viewWS)))), _FresnelPower);
-                half tipFade = 1 - smoothstep(_TipFadeStart, 1, IN.uv.y);
-                half alpha = min(_MaxAlpha, 0.5) * _Color.a * fresnel * tipFade;
+                half tipFade = smoothstep(0, _TipFadeEnd, IN.uv.y);
+                half threshold = 0.5 + 0.15 * sin(_Time.y * _ThresholdSpeed * 6.2831853);
+                half noiseVisibility = smoothstep(threshold - 0.2, threshold + 0.2, IN.noise);
+                half alpha = min(_MaxAlpha, 0.5) * _Color.a * fresnel * tipFade * lerp(0.4, 1, noiseVisibility);
                 return half4(_Color.rgb, alpha);
             }
             ENDHLSL

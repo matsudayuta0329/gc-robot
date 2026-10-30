@@ -29,14 +29,14 @@ $dependencies['com.unity.modules.animation'] = '1.0.0'
 $dependencies['com.unity.modules.physics'] = '1.0.0'
 $dependencies['com.unity.modules.audio'] = '1.0.0'
 $dependencies['com.unity.modules.particlesystem'] = '1.0.0'
-foreach ($packageName in @('com.unity.inputsystem','com.unity.ugui','com.unity.test-framework','com.unity.ext.nunit')) {
+foreach ($packageName in @('com.unity.inputsystem','com.unity.ugui','com.unity.test-framework','com.unity.ext.nunit','com.unity.cinemachine','com.unity.splines')) {
     $packageDirectory = Get-ChildItem "$repositoryRoot/Library/PackageCache" -Directory | Where-Object Name -Like "$packageName@*" | Select-Object -First 1
     if ($null -eq $packageDirectory) { throw "Open the project in Unity first to cache $packageName." }
     $dependencies[$packageName] = 'file:' + $packageDirectory.FullName.Replace('\','/')
 }
 @{dependencies=$dependencies} | ConvertTo-Json -Depth 4 | Set-Content "$validationRoot/Packages/manifest.json"
-'{"name":"GcRobot.Runtime","references":["Unity.InputSystem","Unity.TextMeshPro","Unity.ugui"]}' | Set-Content "$validationRoot/Assets/Runtime/GcRobot.Runtime.asmdef"
-'{"name":"GcRobot.Tests","references":["GcRobot.Runtime","Unity.InputSystem","Unity.TextMeshPro","Unity.ugui"],"optionalUnityReferences":["TestAssemblies"]}' | Set-Content "$validationRoot/Assets/Tests/GcRobot.Tests.asmdef"
+'{"name":"GcRobot.Runtime","references":["Unity.InputSystem","Unity.TextMeshPro","Unity.ugui","Unity.Cinemachine"]}' | Set-Content "$validationRoot/Assets/Runtime/GcRobot.Runtime.asmdef"
+'{"name":"GcRobot.Tests","references":["GcRobot.Runtime","Unity.InputSystem","Unity.TextMeshPro","Unity.ugui","Unity.Cinemachine"],"optionalUnityReferences":["TestAssemblies"]}' | Set-Content "$validationRoot/Assets/Tests/GcRobot.Tests.asmdef"
 $resultsPath = "$repositoryRoot/Temp/game-area-results.xml"
 if (Test-Path -LiteralPath $resultsPath) { Remove-Item -LiteralPath $resultsPath }
 $unityArguments = @('-batchmode', '-nographics', '-projectPath', ('"' + $validationRoot + '"'), '-runTests', '-testPlatform', 'PlayMode', '-testResults', ('"' + $resultsPath + '"'), '-logFile', ('"' + "$repositoryRoot/Temp/game-area-tests.log" + '"'))

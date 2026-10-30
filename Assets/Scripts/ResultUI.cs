@@ -8,6 +8,10 @@ public class ResultUI : AnimatedUIElement
 {
     [SerializeField] private TMP_Text countText;
     [SerializeField] private Button continueButton;
+    [SerializeField] private TMP_InputField nameInput;
+    [SerializeField] private TMP_Text rankText;
+    private int pendingCount;
+    private bool submitted;
     private bool closed;
     private int session;
     private ResultUIPresenter presenter;
@@ -16,13 +20,18 @@ public class ResultUI : AnimatedUIElement
 
     internal void SetCount(int count)
     {
+        pendingCount = count;
         if (countText != null) countText.text = $"回収したごみ: {count}個";
+        EnsureEntryFields();
+        if (nameInput != null) nameInput.text = "Player";
+        if (rankText != null) rankText.text = $"予想順位: {ScoreRanking.GetRank(count)}位";
     }
 
     public override void Enable()
     {
         if (IsVisible) return;
         closed = false;
+        submitted = false;
         session++;
         if (continueButton != null)
         {
@@ -34,7 +43,41 @@ public class ResultUI : AnimatedUIElement
 
     public void Close()
     {
-        if (IsVisible) closed = true;
+        if (!IsVisible || closed) return;
+        if (!submitted)
+        {
+            int rank = ScoreRanking.Submit(nameInput != null ? nameInput.text : "Player", pendingCount);
+            if (rankText != null) rankText.text = $"今回の順位: {rank}位";
+            submitted = true;
+        }
+        closed = true;
+    }
+
+    private void EnsureEntryFields()
+    {
+        if (nameInput != null && rankText != null) return;
+        var parent = countText != null ? countText.transform.parent as RectTransform : transform as RectTransform;
+        if (parent == null) return;
+        if (rankText == null) rankText = CreateLabel(parent, "今回の順位: --位", new Vector2(0, -45), new Vector2(420, 40));
+        if (nameInput == null)
+        {
+            var go = new GameObject("PlayerNameInput", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image), typeof(TMP_InputField));
+            var rect = go.GetComponent<RectTransform>(); rect.SetParent(parent, false); rect.sizeDelta = new Vector2(360, 42); rect.anchoredPosition = new Vector2(0, -92);
+            go.GetComponent<UnityEngine.UI.Image>().color = Color.white;
+            var text = CreateLabel(rect, "Player", Vector2.zero, new Vector2(340, 38));
+            text.color = Color.black; text.alignment = TextAlignmentOptions.MidlineLeft;
+            var input = go.GetComponent<TMP_InputField>(); input.textComponent = text; input.text = "Player"; input.characterLimit = 16;
+            nameInput = input;
+        }
+    }
+
+    private TMP_Text CreateLabel(RectTransform parent, string value, Vector2 position, Vector2 size)
+    {
+        var go = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        var rect = go.GetComponent<RectTransform>(); rect.SetParent(parent, false); rect.sizeDelta = size; rect.anchoredPosition = position;
+        var text = go.GetComponent<TextMeshProUGUI>(); text.text = value; text.fontSize = 26; text.alignment = TextAlignmentOptions.Center;
+        if (countText != null) text.font = countText.font;
+        return text;
     }
 
     // 既存のButtonイベントとの互換性を維持する。

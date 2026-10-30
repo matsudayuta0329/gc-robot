@@ -33,12 +33,21 @@ public class LobbyManager : MonoBehaviour
             confirmationDialog.PrepareEnable();
             messageBox.PrepareEnable();
             await uiParent.Enable(destroyCancellationToken);
+            CreateRankingBoard();
             ready = true;
             player.SetPaused(wasPaused);
             inputReader.SetEnableAction(actions);
         }
         catch (OperationCanceledException) { }
         catch (Exception exception) { Debug.LogException(exception, this); }
+    }
+
+    private void CreateRankingBoard()
+    {
+        var boardObject = new GameObject("RankingBoard");
+        var forward = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
+        boardObject.transform.SetPositionAndRotation(player.transform.position + forward * 2.2f, Quaternion.LookRotation(-forward));
+        boardObject.AddComponent<RankingBoard>().Initialize(player, inputReader);
     }
 
     public bool IsPlayer(Player candidate) => candidate != null && candidate == player;

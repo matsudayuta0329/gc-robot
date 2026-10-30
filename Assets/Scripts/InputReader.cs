@@ -17,8 +17,10 @@ public class InputReader : MonoBehaviour, PlayerInputAction.IPlayerActions
     private PlayerInputAction inputAction;
     private ActionType[] enabledTypes;
     private InputAction interactAction;
+    private InputAction cancelAction;
     public event Action Dash;
     public event Action Interact;
+    public event Action Cancel;
     public event Action<ActionType> ActionPerformed;
     private Vector2 moveInput;
     private Vector2 lookDiff;
@@ -30,6 +32,7 @@ public class InputReader : MonoBehaviour, PlayerInputAction.IPlayerActions
     {
         foreach (var list in lookup.Values)
             foreach (var action in list) action.Disable();
+        cancelAction?.Disable();
         moveInput = Vector2.zero;
         lookDiff = Vector2.zero;
         isCollect = false;
@@ -64,6 +67,9 @@ public class InputReader : MonoBehaviour, PlayerInputAction.IPlayerActions
             interactAction.performed += context => OnCustomAction(ActionType.Interact, context);
             Add(ActionType.Interact, interactAction);
         }
+        cancelAction = new InputAction("Cancel", InputActionType.Button, "<Keyboard>/escape");
+        cancelAction.performed += _ => Cancel?.Invoke();
+        if (isActiveAndEnabled) cancelAction.Enable();
     }
 
     private void Add(ActionType type, InputAction action)
@@ -146,6 +152,7 @@ public class InputReader : MonoBehaviour, PlayerInputAction.IPlayerActions
         OnDisable();
         inputAction?.Dispose();
         interactAction?.Dispose();
+        cancelAction?.Dispose();
         foreach (var entry in actions) entry?.action?.Dispose();
     }
 

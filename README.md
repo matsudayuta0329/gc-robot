@@ -245,3 +245,11 @@ SRC/Soundの元音源を保持し、Preparedに再生用WAVを作成していま
 Playerプレハブに移動・吸引・ダッシュ音を設定済みです。移動と旋回に移動音、吸引入力に吸引音をループ再生し、停止時は音量を下げて停止します。ダッシュ音は溜め終了後、実際にダッシュ移動が始まる時に一度再生します。移動音量0.65・吸引0.6・ダッシュ1、フェード時間は移動0.2秒・吸引0.25秒を初期設定としています。各ManagerのBGMにはBGM.mp3を割り当て、音量0.25でシーン開始から2Dループ再生します。
 
 吸引停止時はStopEmittingで新規発生だけを止めます。既存の粒子は保存済みColor over Lifetimeで最大0.6秒かけて消えます。再吸引時は従来どおりクリアして再生を開始します。
+
+### テレビ風ポストエフェクト（URP RenderGraph）
+
+PC/Mobile RendererへTV Post Effect Featureを登録済みです。カメラのRendering > Post Processingを有効にし、Add Component > Rendering > TV Post Effectを追加してください。Scanline Intensityは横線の濃さ、Scanline Spacingは描画解像度での間隔（px）、Chromatic Aberrationは画面端のRGBずれ（px）です。両方の強度が0なら描画パスは実行しません。
+
+Volume ProfileのAdd Override > Post-processing > TV Post Effectからも設定できます。各項目のOverrideをオンにし強度を上げてください。カメラにコンポーネントがある場合はそちらを優先し、無効化時は効果なしになります。複数カメラではCameraのVolume Layer Maskも確認してください。カメラスタックでは最後に描画するカメラへ設定します。
+
+スキャンラインと色収差以外の効果は追加していません。Screen Space OverlayのUIはカメラ描画後のため対象外です。UIにも適用したい場合はScreen Space Cameraを使ってください。現在のRenderGraph有効設定向けで、Compatibility Modeは対象外です。

@@ -106,8 +106,12 @@ public sealed class PlayerEffects : MonoBehaviour
         previousPosition = transform.position;
         if (vacuuming != vacuumActive && vacuumParticles != null)
         {
-            vacuumParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            if (vacuuming) vacuumParticles.Play(true);
+            if (vacuuming)
+            {
+                vacuumParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                vacuumParticles.Play(true);
+            }
+            else vacuumParticles.Stop(true, ParticleSystemStopBehavior.StopEmitting);
         }
         vacuumActive = vacuuming;
         for (int i = 0; i < 2; i++)

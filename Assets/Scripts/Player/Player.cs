@@ -87,8 +87,10 @@ public class Player : MonoBehaviour
         if (!movement.IsDashing)
         {
             Vector3 previousPosition = transform.position;
+            Quaternion previousRotation = transform.rotation;
             movement.Tick(inputReader.GetMoveInput(), Time.fixedDeltaTime);
-            movedThisFixedStep = (transform.position - previousPosition).sqrMagnitude > 0.000001f;
+            movedThisFixedStep = (transform.position - previousPosition).sqrMagnitude > 0.000001f
+                || Quaternion.Angle(previousRotation, transform.rotation) > 0.01f;
             pickupGarbage.TickVacuum(inputReader.GetIsCollect());
         }
         else if (movement.IsDashMoving)

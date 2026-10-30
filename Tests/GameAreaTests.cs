@@ -163,7 +163,9 @@ public class GameAreaTests
         vacuum.Simulate(0.5f, true, false);
         Assert.Greater(vacuum.time, 0f);
         effects.Tick(false, false);
-        Assert.IsFalse(vacuum.isPlaying);
+        Assert.IsFalse(vacuum.isEmitting);
+        Assert.Greater(vacuum.particleCount, 0);
+        vacuum.Simulate(6f, true, false);
         Assert.AreEqual(0, vacuum.particleCount);
         effects.Tick(true, false);
         Assert.IsTrue(vacuum.isPlaying);

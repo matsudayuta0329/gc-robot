@@ -1182,6 +1182,14 @@ MonoBehaviour:
   npcLayer:
     serializedVersion: 2
     m_Bits: 0
+  moveClip: {fileID: 8300000, guid: 347144bfaa7d421b9140da1d132d1179, type: 3}
+  vacuumClip: {fileID: 8300000, guid: a455058451f54838bd61ec89ed51fab8, type: 3}
+  dashClip: {fileID: 8300000, guid: 81386962782a42c99cbec213b9012b2d, type: 3}
+  moveVolume: 0.65
+  vacuumVolume: 0.6
+  dashVolume: 1
+  moveFadeDuration: 0.2
+  vacuumFadeDuration: 0.25
 --- !u!114 &5348000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0

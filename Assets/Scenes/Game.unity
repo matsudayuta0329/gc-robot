@@ -4154,6 +4154,10 @@ MonoBehaviour:
   resultUI: {fileID: 1910754032}
   uiParent: {fileID: 1342490497}
   lobbyScene: Lobby
+  bgm:
+    clip: {fileID: 8300000, guid: a5e41897376c3174f9f2645ee776f47b, type: 3}
+    volume: 0.25
+    output: {fileID: 0}
 --- !u!4 &614290153
 Transform:
   m_ObjectHideFlags: 0

@@ -4810,6 +4810,10 @@ MonoBehaviour:
   inputReader: {fileID: 2125208570}
   confirmationDialog: {fileID: 1777632480}
   messageBox: {fileID: 2139850600}
+  bgm:
+    clip: {fileID: 8300000, guid: a5e41897376c3174f9f2645ee776f47b, type: 3}
+    volume: 0.25
+    output: {fileID: 0}
 --- !u!4 &692648738
 Transform:
   m_ObjectHideFlags: 0

@@ -237,3 +237,11 @@ PlayerのmoveVolume・vacuumVolume・dashVolumeは各SEの最大音量です。m
 PlayerのPort配下のVacuum Particlesを選択し、SceneビューのParticle EffectパネルからPlayで確認できます。Play Modeは不要です。設定はVacuumParticles.prefabに保存し、実行時の設定・粒子位置の書換えスクリプトは使用しません。PlayerEffectsは開始時のクリア・再生と停止だけを担当します。
 
 ShapeはCone、Position Z=3、Radius=1.2、Angle=21.8014度。Start Speed=-5で広い円盤から吸引口へ逆向きに進み、Lifetime=0.6秒で口元の狭い範囲に到達して消えます。Size/Color over Lifetimeで縮小・フェードします。Main・Emission・Shapeと割当済みのVacuumParticlesマテリアルをInspectorで直接編集できます。モデル階層の倍率・回転はPlayerプレハブ内のパーティクルTransformで補正済みです。
+
+### 音声の割り当てと吸引停止
+
+SRC/Soundの元音源を保持し、Preparedに再生用WAVを作成しています。moveLoopとVacuumLoopは元音源の2～10秒から作成した7.88秒のループで、継ぎ目を0.12秒でクロスフェードしています。DashStartは冒頭0.06秒を除いた0.6秒の単発音です。
+
+Playerプレハブに移動・吸引・ダッシュ音を設定済みです。移動と旋回に移動音、吸引入力に吸引音をループ再生し、停止時は音量を下げて停止します。ダッシュ音は溜め終了後、実際にダッシュ移動が始まる時に一度再生します。移動音量0.65・吸引0.6・ダッシュ1、フェード時間は移動0.2秒・吸引0.25秒を初期設定としています。各ManagerのBGMにはBGM.mp3を割り当て、音量0.25でシーン開始から2Dループ再生します。
+
+吸引停止時はStopEmittingで新規発生だけを止めます。既存の粒子は保存済みColor over Lifetimeで最大0.6秒かけて消えます。再吸引時は従来どおりクリアして再生を開始します。

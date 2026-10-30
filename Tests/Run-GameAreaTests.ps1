@@ -29,7 +29,7 @@ $dependencies['com.unity.modules.animation'] = '1.0.0'
 $dependencies['com.unity.modules.physics'] = '1.0.0'
 $dependencies['com.unity.modules.audio'] = '1.0.0'
 $dependencies['com.unity.modules.particlesystem'] = '1.0.0'
-foreach ($packageName in @('com.unity.inputsystem','com.unity.ugui','com.unity.test-framework','com.unity.ext.nunit','com.unity.cinemachine','com.unity.splines')) {
+foreach ($packageName in @('com.unity.inputsystem','com.unity.ugui','com.unity.test-framework','com.unity.ext.nunit','com.unity.cinemachine','com.unity.splines','com.unity.mathematics','com.unity.settings-manager')) {
     $packageDirectory = Get-ChildItem "$repositoryRoot/Library/PackageCache" -Directory | Where-Object Name -Like "$packageName@*" | Select-Object -First 1
     if ($null -eq $packageDirectory) { throw "Open the project in Unity first to cache $packageName." }
     $dependencies[$packageName] = 'file:' + $packageDirectory.FullName.Replace('\','/')

@@ -27,7 +27,11 @@ public class InputReader : MonoBehaviour, PlayerInputAction.IPlayerActions
     private bool isCollect;
 
     private void Awake() => Initialize();
-    private void OnEnable() => SetEnableAction(enabledTypes);
+    private void OnEnable()
+    {
+        SetEnableAction(enabledTypes);
+        cancelAction?.Enable();
+    }
     private void OnDisable()
     {
         foreach (var list in lookup.Values)

@@ -136,16 +136,18 @@ public class Player : MonoBehaviour
             if (npc != null && npc.isActiveAndEnabled)
             {
                 float candidate = (npc.transform.position - transform.position).sqrMagnitude;
-                if (candidate < distance) { closest = npc; distance = candidate; }
+                if (candidate < distance) { closest = npc; closestBoard = null; distance = candidate; }
             }
             var board = hit.GetComponentInParent<RankingBoard>();
-            if (board != null)
+            if (board != null && board.isActiveAndEnabled)
             {
                 float candidate = (board.transform.position - transform.position).sqrMagnitude;
-                if (candidate < distance) { closestBoard = board; distance = candidate; }
+                if (candidate < distance) { closestBoard = board; closest = null; distance = candidate; }
             }
         }
-        nearbyRankingBoard = closest != null ? null : closestBoard;
+        if (nearbyRankingBoard != null && nearbyRankingBoard != closestBoard) nearbyRankingBoard.SetGuideEnable(false);
+        nearbyRankingBoard = closestBoard;
+        if (nearbyRankingBoard != null) nearbyRankingBoard.SetGuideEnable(true);
         if (nearbyNPC != closest && nearbyNPC != null) nearbyNPC.SetGuideEnable(false);
         nearbyNPC = closest;
         if (nearbyNPC != null) nearbyNPC.SetGuideEnable(true);
@@ -167,6 +169,7 @@ public class Player : MonoBehaviour
 
     private void OnDisable()
     {
+        if (nearbyRankingBoard != null) { nearbyRankingBoard.Close(); nearbyRankingBoard.SetGuideEnable(false); }
         if (nearbyNPC != null) nearbyNPC.SetGuideEnable(false);
         if (moveSource != null) moveSource.Stop();
         if (vacuumSource != null) { vacuumSource.Stop(); vacuumSource.volume = 0f; }

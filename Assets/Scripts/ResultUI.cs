@@ -58,15 +58,20 @@ public class ResultUI : AnimatedUIElement
         if (nameInput != null && rankText != null) return;
         var parent = countText != null ? countText.transform.parent as RectTransform : transform as RectTransform;
         if (parent == null) return;
-        if (rankText == null) rankText = CreateLabel(parent, "今回の順位: --位", new Vector2(0, -45), new Vector2(420, 40));
+        // 自動生成時のみ、既存の結果パネル内に各入力を縦に配置する。
+        parent.sizeDelta = new Vector2(Mathf.Max(parent.sizeDelta.x, 560), 340);
+        if (countText != null) countText.rectTransform.anchoredPosition = new Vector2(0, 110);
+        if (continueButton != null)
+            ((RectTransform)continueButton.transform).anchoredPosition = new Vector2(0, -110);
+        if (rankText == null) rankText = CreateLabel(parent, "今回の順位: --位", new Vector2(0, 55), new Vector2(420, 40));
         if (nameInput == null)
         {
             var go = new GameObject("PlayerNameInput", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image), typeof(TMP_InputField));
-            var rect = go.GetComponent<RectTransform>(); rect.SetParent(parent, false); rect.sizeDelta = new Vector2(360, 42); rect.anchoredPosition = new Vector2(0, -92);
+            var rect = go.GetComponent<RectTransform>(); rect.SetParent(parent, false); rect.sizeDelta = new Vector2(360, 42); rect.anchoredPosition = new Vector2(0, -5);
             go.GetComponent<UnityEngine.UI.Image>().color = Color.white;
             var text = CreateLabel(rect, "Player", Vector2.zero, new Vector2(340, 38));
             text.color = Color.black; text.alignment = TextAlignmentOptions.MidlineLeft;
-            var input = go.GetComponent<TMP_InputField>(); input.textComponent = text; input.text = "Player"; input.characterLimit = 16;
+            var input = go.GetComponent<TMP_InputField>(); input.textViewport = text.rectTransform; input.textComponent = text; input.lineType = TMP_InputField.LineType.SingleLine; input.text = "Player"; input.characterLimit = 16;
             nameInput = input;
         }
     }

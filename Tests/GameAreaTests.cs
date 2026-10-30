@@ -32,6 +32,48 @@ public class GameAreaTests
         var field = typeof(Player).GetField("movement", BindingFlags.Instance | BindingFlags.NonPublic);
         return (PlayerMovement)field.GetValue(player);
     }
+    [UnityTest]
+    public IEnumerator RankingBoardRestoresCameraAndInputAfterCloseAndDisable()
+    {
+        var cameraObject = Create("main camera");
+        cameraObject.tag = "MainCamera";
+        var camera = cameraObject.AddComponent<Camera>();
+        var follow = cameraObject.AddComponent<PlayerCamera>();
+        follow.enabled = false;
+        var position = new Vector3(4, 8, -6);
+        var rotation = Quaternion.Euler(35, 20, 0);
+        camera.transform.SetPositionAndRotation(position, rotation);
+        camera.fieldOfView = 47;
+        var input = Create("input").AddComponent<InputReader>();
+        var playerObject = Create("player", false);
+        var player = playerObject.AddComponent<Player>();
+        Set(player, "inputReader", input);
+        playerObject.SetActive(true);
+        player.SetPaused(true);
+        input.SetEnableAction(new[] { ActionType.Interact });
+        var board = Create("board").AddComponent<RankingBoard>();
+        board.Initialize(player, input);
+        for (int i = 0; i < 2; i++)
+        {
+            var wait = board.OpenAsync();
+            Assert.IsTrue(board.IsOpen);
+            Assert.IsFalse(input.IsActionEnabled(ActionType.Interact));
+            camera.transform.SetPositionAndRotation(Vector3.one * 99, Quaternion.identity);
+            camera.fieldOfView = 90;
+            if (i == 0) board.Close();
+            else board.enabled = false;
+            Assert.IsFalse(board.IsOpen);
+            Assert.AreEqual(position, camera.transform.position);
+            Assert.Less(Quaternion.Angle(rotation, camera.transform.rotation), 0.01f);
+            Assert.AreEqual(47, camera.fieldOfView);
+            Assert.IsFalse(camera.GetComponent<Unity.Cinemachine.CinemachineBrain>().enabled);
+            Assert.IsFalse(follow.enabled);
+            Assert.IsTrue(player.IsPaused);
+            Assert.IsTrue(input.IsActionEnabled(ActionType.Interact));
+            yield return wait;
+        }
+    }
+
     [Test]
     public void PlayerEffectsRestartsVacuumParticlesAndKeepsSquareSmokeFallback()
     {

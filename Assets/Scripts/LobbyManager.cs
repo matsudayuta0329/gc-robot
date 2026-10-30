@@ -46,9 +46,18 @@ public class LobbyManager : MonoBehaviour
     {
         var boardObject = new GameObject("RankingBoard");
         var forward = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
-        boardObject.transform.SetPositionAndRotation(player.transform.position + forward * 2.2f, Quaternion.LookRotation(-forward));
+        boardObject.transform.SetPositionAndRotation(player.transform.position + forward * 2.2f, Quaternion.LookRotation(forward));
         boardObject.AddComponent<RankingBoard>().Initialize(player, inputReader);
     }
+
+    public bool TryBeginRanking()
+    {
+        if (IsBusy) return false;
+        busy = true;
+        return true;
+    }
+
+    public void EndRanking() => busy = false;
 
     public bool IsPlayer(Player candidate) => candidate != null && candidate == player;
 

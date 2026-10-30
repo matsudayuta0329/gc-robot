@@ -25,12 +25,11 @@
 
 `Assets/SRC/Player.prefab`の`Player`に、移動・吸引・ダッシュ用のAudioClipを割り当てます。移動と吸引はループ、ダッシュは実際にダッシュ移動を開始した時だけ単発で再生します。吸引音は`vacuumFadeDuration`の間、音量を線形補間してオン・オフします。プレイヤーの音はすべて2Dで、距離による減衰はありません。
 
-Title、Tutorial、Lobby、Gameの各Managerにある`bgm`へシーン用AudioClipを割り当てます。BGMはManagerのあるGameObjectで2D・ループ再生され、シーン終了時に停止します。Clipと音量はシーンごとに差し替えられます。現在のリポジトリには音声ファイルがないため、再生にはAudioClipのインポートと割り当てが必要です。
+Tutorial、Lobby、Gameの各Managerにある`bgm`へシーン用AudioClipを割り当てます。BGMはManagerのあるGameObjectで2D・ループ再生され、シーン終了時に停止します。Clipと音量はシーンごとに差し替えられます。現在のリポジトリには音声ファイルがないため、再生にはAudioClipのインポートと割り当てが必要です。
 
 
 | シーン | Manager | 終了条件と遷移 |
 | --- | --- | --- |
-| Title | TitleManager | スタートボタン → タイトル演出のAnimation Event → Tutorial |
 | Tutorial | TutorialManager | 登録された説明・操作体験が終了 → nextScene演出 → lobbyScene |
 | Lobby | LobbyManager | NPCへの話しかけ → 会話表示・終了、またはゲート接触 → 確認ダイアログ → はいならnextScene演出 → ゲートのmoveScene |
 | Game | GameManager | 制限時間終了 → endGame演出 → ResultUIのClose待ち → nextScene演出 → lobbyScene |
@@ -39,7 +38,7 @@ Title、Tutorial、Lobby、Gameの各Managerにある`bgm`へシーン用AudioCl
 
 ## 処理フローと設計
 
-1. Titleでは`TitleManager`がクレジットと開始ボタンを扱い、開始演出のAnimation EventからTutorialを読み込みます。
+1. 起動時はLobbyを読み込みます。チュートリアルとゲームへの移動はロビーのゲートから行います。
 2. Tutorialでは`UIParent.Enable`の開始演出が終わるまで操作を止めます。`TutorialManager`は登録順に会話と操作体験を進めます。会話中は入力と操作ガイドを止め、操作体験中は対象の`ActionType`だけを有効にします。すべて終わると`UIParent.FinishAsync`の`nextScene`演出を経てLobbyへ進みます。
 3. LobbyではNPCへの話しかけで`MessageBox`に会話文を文字送りし、「次へ」で閉じます。ゲートへの接触では`ConfirmationDialog`を表示し、「いいえ」なら復帰、「はい」なら`nextScene`演出後にゲートの対象シーンへ移ります。どちらの表示中もプレイヤー入力を止め、同時に複数の表示は開きません。
 4. Gameでは開始演出後に操作を解放し、制限時間中にごみを生成します。吸引またはダッシュで回収した数を記録し、時間切れで操作を止めます。`endGame`演出でResultUIを表示し、Closeを待ってから`nextScene`演出でLobbyへ戻ります。
@@ -57,12 +56,11 @@ gc-robot/
 ├─ README.md                         ゲーム概要、構成、設定・検証手順
 ├─ Assets/
 │  ├─ Scenes/
-│  │  ├─ Title.unity                  メニューとクレジット
 │  │  ├─ Tutorial.unity               会話と操作練習
 │  │  ├─ Lobby.unity                  NPCとの会話とゲートからの遷移を行う拠点
 │  │  └─ Game.unity                   制限時間内にごみを回収するゲーム本編
 │  ├─ Scripts/
-│  │  ├─ TitleManager.cs             開始ボタン・クレジット・Tutorial遷移
+│  │  ├─ TitleManager.cs             旧タイトル用（現在の起動フローでは未使用）
 │  │  ├─ TutorialManager.cs          会話／操作体験の順序とLobby遷移
 │  │  ├─ LobbyManager.cs             会話・確認中の入力停止・排他制御・ゲート遷移
 │  │  ├─ GameManager.cs              ごみ生成・時間管理・結果表示・Lobby遷移
@@ -216,3 +214,14 @@ Temp/GameAreaValidationへコードとAnimatorをコピーし、Unity 6000.3.9f1
 実シーンの結合テストはTests/Run-SceneFlowTests.ps1で実行します。Temp/SceneFlowValidationにプロジェクトをコピーし、Gameの結果画面からLobby、ゲートの物理接触・「はい」からGame、Tutorialの終了からLobby、NPC会話後もLobbyに留まることを検証します。結果はTemp/scene-flow-results.xmlです。テスト内ではゲーム時間を短縮し、チュートリアルのAdvanceを自動実行します。
 
 新しい日本語UIにはUIAnimations/UIJapanese.assetを使用します。同梱のDotGothic16を元にした動的TMPフォントで、Inspectorで文言を変更した場合も必要な文字を追加できます。
+
+## ランキング閲覧
+
+起動シーンはLobbyです（Titleシーンは削除済み）。ゲーム終了時、結果画面に名前と予想順位を表示し、終了ボタンで回収個数を端末内のランキングへ登録します。
+
+ロビーのランキングボードは上位10件を常時表示します。近くでEを押すとCinemachineの閲覧カメラへ切り替え、移動入力とNPC・ゲートの受付を停止します。Escまたは閉じるボタンで閲覧前のカメラ位置・回転・画角、追従コンポーネントと入力状態を復元します。ボード無効化時も同じ解除処理を通ります。ランキング表示は解除後も残ります。
+
+- ScoreRanking: PlayerPrefsへの上位10件保存と順位計算。
+- RankingBoard: ワールド空間のボード表示、閲覧カメラ、閲覧状態の保存・復元。
+- LobbyManager: 会話・ゲート・ランキング閲覧の同時開始を防止。
+- ResultUI: 名前入力と終了時の一度だけの登録。

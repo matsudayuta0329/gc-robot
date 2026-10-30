@@ -13,6 +13,8 @@ public class UIParent : MonoBehaviour
     [SerializeField] private List<AnimatedUIElement> elements = new List<AnimatedUIElement>();
     [SerializeField] private ResultUI resultUI;
     [SerializeField, Min(1)] private float animationTimeout = 30f;
+    public float SoundEffectVolume { get; private set; }
+    private float transitionSoundElapsed;
     private string phase;
     private bool animationCompleted;
     private bool resultShown;
@@ -30,6 +32,12 @@ public class UIParent : MonoBehaviour
 
     private void Update()
     {
+        if (phase == "nextScene" && !animationCompleted)
+        {
+            transitionSoundElapsed += Time.unscaledDeltaTime * normalAnimatorSpeed;
+            SoundEffectVolume = 1f - Mathf.Clamp01(transitionSoundElapsed / Mathf.Max(0.01f,
+                nextSceneAnimation != null ? nextSceneAnimation.length : 0.5f));
+        }
         if (phase != "startGame" || animationCompleted || !HasAnimator) return;
 
         // 長いフレームでも、画面に出せなかったAnimationのコマを一度に飛ばさない。
@@ -39,6 +47,7 @@ public class UIParent : MonoBehaviour
         float animatedTime = Mathf.Min(elapsed, frameDuration);
         animator.speed = normalAnimatorSpeed * (elapsed > 0f ? animatedTime / elapsed : 1f);
         startPlaybackElapsed += animatedTime * normalAnimatorSpeed;
+        SoundEffectVolume = Mathf.Clamp01(startPlaybackElapsed / Mathf.Max(0.01f, startGameAnimation != null ? startGameAnimation.length : 0.5f));
     }
 
     private void ConfigureAnimator()
@@ -107,6 +116,8 @@ public class UIParent : MonoBehaviour
         ConfigureAnimator();
         token.ThrowIfCancellationRequested();
         phase = trigger;
+        if (trigger == "startGame") SoundEffectVolume = 0f;
+        if (trigger == "nextScene") transitionSoundElapsed = 0f;
         animationCompleted = false;
         if (trigger == "startGame") startPlaybackElapsed = 0f;
         if (!HasAnimator)
@@ -134,6 +145,8 @@ public class UIParent : MonoBehaviour
                 throw new InvalidOperationException(name + ": " + trigger + "の完了イベントがありません。");
             await Awaitable.NextFrameAsync(token);
         }
+        if (trigger == "startGame") SoundEffectVolume = 1f;
+        if (trigger == "nextScene") SoundEffectVolume = 0f;
         foreach (var element in elements)
             if (element != null && element != resultUI) await element.WaitForTransition(token);
         if (resultUI != null) await resultUI.WaitForTransition(token);

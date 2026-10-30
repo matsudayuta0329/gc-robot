@@ -225,3 +225,9 @@ Temp/GameAreaValidationへコードとAnimatorをコピーし、Unity 6000.3.9f1
 - RankingBoard: ワールド空間のボード表示、閲覧カメラ、閲覧状態の保存・復元。
 - LobbyManager: 会話・ゲート・ランキング閲覧の同時開始を防止。
 - ResultUI: 名前入力と終了時の一度だけの登録。
+
+### ランキング表示と効果音の調整
+
+ランキング背景は半透明黒のQuad（World Space CanvasのImage）で、初期実装比4倍のサイズです。LobbyManagerのrankingBoardPositionで配置位置を設定します。既定は部屋の左奥（-13, -0.77, 22）で、正面を通常カメラへ向けます。RankingBoardのcameraBlendDurationで往復のLinearブレンド時間を調整できます。近接時のEガイドは画面下部に固定サイズで表示します。拡大開始から戻りの完了まではプレイヤーのRendererを隠し、終了時に各Rendererの元の有効状態を復元します。
+
+PlayerのmoveVolume・vacuumVolume・dashVolumeは各SEの最大音量です。moveFadeDuration・vacuumFadeDurationは開始・停止のフェード時間（既定0.5秒）です。移動・吸引のフェードにUIParentのStartGame/NextScene進行に伴うSE倍率を乗算し、再生中の単発ダッシュ音にもシーンの倍率を適用します。BGMの音量設定とは独立しています。

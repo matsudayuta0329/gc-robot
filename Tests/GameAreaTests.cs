@@ -33,6 +33,42 @@ public class GameAreaTests
         return (PlayerMovement)field.GetValue(player);
     }
     [UnityTest]
+    public IEnumerator LoopSoundFadesAndRespectsMaximumAndSceneGain()
+    {
+        var source = Create("loop audio").AddComponent<AudioSource>();
+        var clip = AudioClip.Create("test", 44100, 1, 44100, false);
+        source.clip = clip;
+        source.loop = true;
+        yield return null;
+        var method = typeof(Player).GetMethod("FadeLoop", BindingFlags.NonPublic | BindingFlags.Static);
+        object[] args = { source, true, 0.6f, 1f, 0.5f, 0f };
+        method.Invoke(null, args);
+        Assert.Greater((float)args[5], 0);
+        Assert.Less((float)args[5], 1);
+        Assert.AreEqual(0.6f * 0.5f * (float)args[5], source.volume, 0.0001f);
+        args[1] = false;
+        args[5] = 1f;
+        method.Invoke(null, args);
+        Assert.Greater((float)args[5], 0);
+        Assert.Less((float)args[5], 1);
+        args[4] = 0f;
+        method.Invoke(null, args);
+        Assert.AreEqual(0f, source.volume);
+        UnityEngine.Object.DestroyImmediate(clip);
+    }
+
+    [UnityTest]
+    public IEnumerator SceneSoundGainCompletesWithoutAnimator()
+    {
+        var ui = Create("scene ui").AddComponent<UIParent>();
+        Assert.AreEqual(0f, ui.SoundEffectVolume);
+        yield return ui.Enable();
+        Assert.AreEqual(1f, ui.SoundEffectVolume);
+        yield return ui.FinishAsync();
+        Assert.AreEqual(0f, ui.SoundEffectVolume);
+    }
+
+    [UnityTest]
     public IEnumerator RankingBoardRestoresCameraAndInputAfterCloseAndDisable()
     {
         var cameraObject = Create("main camera");
@@ -53,15 +89,23 @@ public class GameAreaTests
         input.SetEnableAction(new[] { ActionType.Interact });
         var board = Create("board").AddComponent<RankingBoard>();
         board.Initialize(player, input);
+        Set(board, "cameraBlendDuration", 0.1f);
+        var visual = playerObject.AddComponent<MeshRenderer>();
         for (int i = 0; i < 2; i++)
         {
             var wait = board.OpenAsync();
             Assert.IsTrue(board.IsOpen);
             Assert.IsFalse(input.IsActionEnabled(ActionType.Interact));
+            Assert.IsFalse(visual.enabled);
+            yield return new WaitForSecondsRealtime(0.2f);
+            Assert.AreEqual(Unity.Cinemachine.CinemachineBlendDefinition.Styles.Linear,
+                camera.GetComponent<Unity.Cinemachine.CinemachineBrain>().DefaultBlend.Style);
             camera.transform.SetPositionAndRotation(Vector3.one * 99, Quaternion.identity);
             camera.fieldOfView = 90;
             if (i == 0) board.Close();
             else board.enabled = false;
+            yield return wait;
+            Assert.IsTrue(visual.enabled);
             Assert.IsFalse(board.IsOpen);
             Assert.AreEqual(position, camera.transform.position);
             Assert.Less(Quaternion.Angle(rotation, camera.transform.rotation), 0.01f);
@@ -70,7 +114,6 @@ public class GameAreaTests
             Assert.IsFalse(follow.enabled);
             Assert.IsTrue(player.IsPaused);
             Assert.IsTrue(input.IsActionEnabled(ActionType.Interact));
-            yield return wait;
         }
     }
 

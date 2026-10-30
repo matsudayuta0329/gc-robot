@@ -29,7 +29,10 @@ public class Player : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float moveVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float vacuumVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float dashVolume = 1f;
-    [SerializeField, Min(0.01f)] private float vacuumFadeDuration = 0.15f;
+    [SerializeField, Min(0.01f)] private float vacuumFadeDuration = 0.5f;
+    [SerializeField, Min(0.01f)] private float moveFadeDuration = 0.5f;
+    private float moveEnvelope, vacuumEnvelope;
+    private UIParent sceneUI;
 
     private PlayerMovement movement;
     private PickupGarbage pickupGarbage;
@@ -37,9 +40,6 @@ public class Player : MonoBehaviour
     private AudioSource moveSource;
     private AudioSource vacuumSource;
     private AudioSource dashSource;
-    private bool vacuumRequested;
-    private float vacuumFadeStart;
-    private float vacuumFadeElapsed;
     private bool movedThisFixedStep;
     private NPC nearbyNPC;
     private RankingBoard nearbyRankingBoard;
@@ -66,7 +66,8 @@ public class Player : MonoBehaviour
             garbageLayer, garbageMaterial, garbageCounter);
         TryGetComponent(out effects);
 
-        moveSource = CreateAudioSource(moveClip, true, moveVolume);
+        sceneUI = FindFirstObjectByType<UIParent>();
+        moveSource = CreateAudioSource(moveClip, true, 0f);
         vacuumSource = CreateAudioSource(vacuumClip, true, 0f);
         dashSource = CreateAudioSource(null, false, 1f);
 
@@ -174,7 +175,7 @@ public class Player : MonoBehaviour
         if (moveSource != null) moveSource.Stop();
         if (vacuumSource != null) { vacuumSource.Stop(); vacuumSource.volume = 0f; }
         if (dashSource != null) dashSource.Stop();
-        vacuumRequested = false;
+        moveEnvelope = vacuumEnvelope = 0f;
         movedThisFixedStep = false;
     }
 
@@ -203,32 +204,30 @@ public class Player : MonoBehaviour
         if (movement == null) return;
         bool canPlay = !IsPaused && !isTalking && !movement.IsDashing;
         bool moving = canPlay && movedThisFixedStep;
-        if (moveSource != null && moveSource.clip != null)
-        {
-            moveSource.volume = moveVolume;
-            if (moving && !moveSource.isPlaying) moveSource.Play();
-            else if (!moving && moveSource.isPlaying) moveSource.Stop();
-        }
+        float sceneGain = sceneUI != null ? sceneUI.SoundEffectVolume : 1f;
+        FadeLoop(moveSource, moving, moveVolume, moveFadeDuration, sceneGain, ref moveEnvelope);
+        FadeLoop(vacuumSource, canPlay && inputReader.GetIsCollect(),
+            vacuumVolume, vacuumFadeDuration, sceneGain, ref vacuumEnvelope);
+        if (dashSource != null) dashSource.volume = sceneGain;
+    }
 
-        if (vacuumSource == null || vacuumSource.clip == null) return;
-        bool requested = canPlay && inputReader.GetIsCollect();
-        if (requested != vacuumRequested)
-        {
-            vacuumRequested = requested;
-            vacuumFadeStart = vacuumSource.volume;
-            vacuumFadeElapsed = 0f;
-            if (requested && !vacuumSource.isPlaying) vacuumSource.Play();
-        }
-        vacuumFadeElapsed = Mathf.Min(vacuumFadeElapsed + Time.unscaledDeltaTime, vacuumFadeDuration);
-        float targetVolume = vacuumRequested ? vacuumVolume : 0f;
-        vacuumSource.volume = Mathf.Lerp(vacuumFadeStart, targetVolume,
-            vacuumFadeElapsed / Mathf.Max(0.01f, vacuumFadeDuration));
-        if (!vacuumRequested && vacuumFadeElapsed >= vacuumFadeDuration && vacuumSource.isPlaying)
-            vacuumSource.Stop();
+    private static void FadeLoop(AudioSource source, bool requested, float maximumVolume,
+        float duration, float sceneGain, ref float envelope)
+    {
+        if (source == null || source.clip == null) return;
+        envelope = Mathf.MoveTowards(envelope, requested ? 1f : 0f,
+            Time.unscaledDeltaTime / Mathf.Max(0.01f, duration));
+        source.volume = Mathf.Clamp01(maximumVolume) * envelope * sceneGain;
+        if (requested && !source.isPlaying) source.Play();
+        if (!requested && envelope <= 0f && source.isPlaying) source.Stop();
     }
 
     private void PlayDashSound()
     {
-        if (dashSource != null && dashClip != null) dashSource.PlayOneShot(dashClip, dashVolume);
+        if (dashSource != null && dashClip != null)
+        {
+            dashSource.volume = sceneUI != null ? sceneUI.SoundEffectVolume : 1f;
+            dashSource.PlayOneShot(dashClip, dashVolume);
+        }
     }
 }

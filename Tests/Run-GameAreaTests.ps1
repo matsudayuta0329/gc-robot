@@ -5,10 +5,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
-$validationRoot = Join-Path $repositoryRoot 'Temp/GameAreaValidation'
+$validationRoot = Join-Path $repositoryRoot 'Logs/GameAreaValidation'
 foreach ($folder in @('Runtime', 'Tests', 'Editor')) {
     $target = [IO.Path]::GetFullPath((Join-Path $validationRoot "Assets/$folder"))
-    $allowed = [IO.Path]::GetFullPath((Join-Path $repositoryRoot 'Temp/GameAreaValidation/Assets')) + [IO.Path]::DirectorySeparatorChar
+    $allowed = [IO.Path]::GetFullPath((Join-Path $repositoryRoot 'Logs/GameAreaValidation/Assets')) + [IO.Path]::DirectorySeparatorChar
     if (!$target.StartsWith($allowed, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid validation directory.' }
     if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
 }
@@ -37,23 +37,23 @@ foreach ($packageName in @('com.unity.inputsystem','com.unity.ugui','com.unity.t
 @{dependencies=$dependencies} | ConvertTo-Json -Depth 4 | Set-Content "$validationRoot/Packages/manifest.json"
 '{"name":"GcRobot.Runtime","references":["Unity.InputSystem","Unity.TextMeshPro","Unity.ugui","Unity.Cinemachine"]}' | Set-Content "$validationRoot/Assets/Runtime/GcRobot.Runtime.asmdef"
 '{"name":"GcRobot.Tests","references":["GcRobot.Runtime","Unity.InputSystem","Unity.TextMeshPro","Unity.ugui","Unity.Cinemachine"],"optionalUnityReferences":["TestAssemblies"]}' | Set-Content "$validationRoot/Assets/Tests/GcRobot.Tests.asmdef"
-$resultsPath = "$repositoryRoot/Temp/game-area-results.xml"
+$resultsPath = "$repositoryRoot/Logs/game-area-results.xml"
 if (Test-Path -LiteralPath $resultsPath) { Remove-Item -LiteralPath $resultsPath }
-$unityArguments = @('-batchmode', '-nographics', '-projectPath', ('"' + $validationRoot + '"'), '-runTests', '-testPlatform', 'PlayMode', '-testResults', ('"' + $resultsPath + '"'), '-logFile', ('"' + "$repositoryRoot/Temp/game-area-tests.log" + '"'))
+$unityArguments = @('-batchmode', '-nographics', '-projectPath', ('"' + $validationRoot + '"'), '-runTests', '-testPlatform', 'PlayMode', '-testResults', ('"' + $resultsPath + '"'), '-logFile', ('"' + "$repositoryRoot/Logs/game-area-tests.log" + '"'))
 if ($TestFilter) { $unityArguments += @('-testFilter', $TestFilter) }
 if ($GenerateTemplates) {
     $unityArguments = @('-batchmode', '-nographics', '-quit', '-projectPath', ('"' + $validationRoot + '"'),
-        '-executeMethod', 'UIAnimationSetup.CreateTemplates', '-logFile', ('"' + "$repositoryRoot/Temp/ui-template-build.log" + '"'))
+        '-executeMethod', 'UIAnimationSetup.CreateTemplates', '-logFile', ('"' + "$repositoryRoot/Logs/ui-template-build.log" + '"'))
 }
 $process = Start-Process -FilePath $UnityEditor -ArgumentList $unityArguments -WindowStyle Hidden -PassThru
 $process.WaitForExit()
 if ($GenerateTemplates) {
-    if ($process.ExitCode -ne 0) { throw 'UI template generation failed. See Temp/ui-template-build.log.' }
+    if ($process.ExitCode -ne 0) { throw 'UI template generation failed. See Logs/ui-template-build.log.' }
     Copy-Item "$validationRoot/Assets/UIAnimations" "$repositoryRoot/Assets" -Recurse -Force
     Copy-Item "$validationRoot/Assets/UIAnimations.meta" "$repositoryRoot/Assets" -Force
     return
 }
-if ($process.ExitCode -ne 0 -or !(Test-Path -LiteralPath $resultsPath)) { throw 'Unity tests failed to run. See Temp/game-area-tests.log.' }
+if ($process.ExitCode -ne 0 -or !(Test-Path -LiteralPath $resultsPath)) { throw 'Unity tests failed to run. See Logs/game-area-tests.log.' }
 [xml]$results = Get-Content -LiteralPath $resultsPath
 $results.'test-run' | Select-Object result, total, passed, failed
 if ($results.'test-run'.result -ne 'Passed') { throw 'PlayMode tests failed.' }

@@ -8,7 +8,7 @@ using Unity.Cinemachine;
 public sealed class RankingBoard : MonoBehaviour
 {
     [SerializeField] private GameObject guide;
-    [SerializeField, Min(0.01f)] private float cameraBlendDuration = 0.7f;
+    [SerializeField, Min(0.01f)] private float cameraBlendDuration = 0.35f;
     private CinemachineCamera returnCamera;
     private CinemachineBlendDefinition savedBlend;
     private CinemachineBlenderSettings savedCustomBlends;

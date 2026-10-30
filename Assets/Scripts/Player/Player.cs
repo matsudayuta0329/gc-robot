@@ -33,6 +33,7 @@ public class Player : MonoBehaviour
 
     private PlayerMovement movement;
     private PickupGarbage pickupGarbage;
+    private PlayerEffects effects;
     private AudioSource moveSource;
     private AudioSource vacuumSource;
     private AudioSource dashSource;
@@ -62,6 +63,7 @@ public class Player : MonoBehaviour
         pickupGarbage = new PickupGarbage(
             suctionPortPivot, pickupPivot, pickupRadius,
             garbageLayer, garbageMaterial, garbageCounter);
+        TryGetComponent(out effects);
 
         moveSource = CreateAudioSource(moveClip, true, moveVolume);
         vacuumSource = CreateAudioSource(vacuumClip, true, 0f);
@@ -76,6 +78,7 @@ public class Player : MonoBehaviour
         if (movement == null || movement.IsPaused)
         {
             movedThisFixedStep = false;
+            if (effects != null) effects.Tick(false, false);
             return;
         }
         if (!movement.IsDashing)
@@ -91,6 +94,8 @@ public class Player : MonoBehaviour
             pickupGarbage.CollectNearby();
         }
         else movedThisFixedStep = false;
+        if (effects != null)
+            effects.Tick(!movement.IsDashing && inputReader.GetIsCollect(), !movement.IsDashing);
     }
 
     public void SetPaused(bool paused)
@@ -99,6 +104,7 @@ public class Player : MonoBehaviour
         movement?.SetPaused(paused);
         if (!paused) return;
         movedThisFixedStep = false;
+        if (effects != null) effects.Tick(false, false);
         if (nearbyNPC != null) nearbyNPC.SetGuideEnable(false);
     }
 

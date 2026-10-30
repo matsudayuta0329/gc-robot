@@ -1096,6 +1096,7 @@ GameObject:
   - component: {fileID: 2212146732992994583}
   - component: {fileID: 4159669295436439817}
   - component: {fileID: 8637383223609389966}
+  - component: {fileID: 5348000000000000001}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1180,6 +1181,34 @@ MonoBehaviour:
   npcLayer:
     serializedVersion: 2
     m_Bits: 0
+--- !u!114 &5348000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9051450114757139580}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45aab8e031e547b78ae0be4835cb90ec, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerEffects
+  suctionPort: {fileID: 5226914100653983229}
+  vacuumShader: {fileID: 4800000, guid: 27194ad7ee024487bbdce9725f5c5162, type: 3}
+  noiseTexture: {fileID: 0}
+  vacuumLength: 2.2
+  portRadius: 0.45
+  tipRadius: 0.04
+  vacuumMaxAlpha: 0.35
+  movementShader: {fileID: 4800000, guid: b059909429154f959303487edc6d8f25, type: 3}
+  smokeTexture: {fileID: 0}
+  wheelHalfSpacing: 0.75
+  trailWidth: 0.25
+  trailDuration: 1.2
+  trailAlpha: 0.3
+  smokeSize: 0.4
+  smokeAlpha: 0.18
+  smokeRate: 18
 --- !u!114 &4159669295436439817
 MonoBehaviour:
   m_ObjectHideFlags: 0

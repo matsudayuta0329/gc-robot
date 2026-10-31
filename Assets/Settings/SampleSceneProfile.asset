@@ -112,6 +112,28 @@ MonoBehaviour:
   scale:
     m_OverrideState: 0
     m_Value: 1.09
+--- !u!114 &-3850308791156549949
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4a13edf33c04d9db0e7f5ef40dbfd80, type: 3}
+  m_Name: TVPostEffectVolume
+  m_EditorClassIdentifier: Assembly-CSharp::TVPostEffectVolume
+  active: 1
+  scanlineIntensity:
+    m_OverrideState: 1
+    m_Value: 0.299
+  scanlineSpacing:
+    m_OverrideState: 1
+    m_Value: 13.2
+  chromaticAberration:
+    m_OverrideState: 1
+    m_Value: 3.05
 --- !u!114 &-3357603926938260329
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -159,6 +181,7 @@ MonoBehaviour:
   - {fileID: -3357603926938260329}
   - {fileID: -4340795917519045133}
   - {fileID: -8951279892883118180}
+  - {fileID: -3850308791156549949}
 --- !u!114 &849379129802519247
 MonoBehaviour:
   m_ObjectHideFlags: 3

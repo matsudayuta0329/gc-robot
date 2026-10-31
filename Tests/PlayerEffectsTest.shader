@@ -2,7 +2,6 @@ Shader "Hidden/PlayerEffectsTest"
 {
     Properties
     {
-        _NoiseTex ("Noise", 2D) = "white" {}
         _BaseMap ("Base", 2D) = "white" {}
         _MaxAlpha ("Alpha", Float) = 0.5
     }

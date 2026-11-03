@@ -46,7 +46,6 @@ public class Player : MonoBehaviour
     private GarbageCounter garbageCounter;
     private bool movedThisFixedStep;
     private NPC nearbyNPC;
-    private RankingBoard nearbyRankingBoard;
     private bool isPaused;
     private bool isTalking;
 
@@ -136,7 +135,6 @@ public class Player : MonoBehaviour
         UpdateSounds();
         if (IsPaused || isTalking) return;
         NPC closest = null;
-        RankingBoard closestBoard = null;
         float distance = float.PositiveInfinity;
         if (inputReader.IsActionEnabled(ActionType.Interact))
         foreach (var hit in Physics.OverlapSphere(transform.position, npcRadius, ~0, QueryTriggerInteraction.Collide))
@@ -145,18 +143,9 @@ public class Player : MonoBehaviour
             if (npc != null && npc.isActiveAndEnabled)
             {
                 float candidate = (npc.transform.position - transform.position).sqrMagnitude;
-                if (candidate < distance) { closest = npc; closestBoard = null; distance = candidate; }
-            }
-            var board = hit.GetComponentInParent<RankingBoard>();
-            if (board != null && board.isActiveAndEnabled)
-            {
-                float candidate = (board.transform.position - transform.position).sqrMagnitude;
-                if (candidate < distance) { closestBoard = board; closest = null; distance = candidate; }
+                if (candidate < distance) { closest = npc; distance = candidate; }
             }
         }
-        if (nearbyRankingBoard != null && nearbyRankingBoard != closestBoard) nearbyRankingBoard.SetGuideEnable(false);
-        nearbyRankingBoard = closestBoard;
-        if (nearbyRankingBoard != null) nearbyRankingBoard.SetGuideEnable(true);
         if (nearbyNPC != closest && nearbyNPC != null) nearbyNPC.SetGuideEnable(false);
         nearbyNPC = closest;
         if (nearbyNPC != null) nearbyNPC.SetGuideEnable(true);
@@ -165,7 +154,6 @@ public class Player : MonoBehaviour
     private async void HandleInteract()
     {
         if (!isActiveAndEnabled || IsPaused || isTalking || movement.IsDashing) return;
-        if (nearbyRankingBoard != null) { try { await nearbyRankingBoard.OpenAsync(); } catch (OperationCanceledException) { } return; }
         if (nearbyNPC == null) return;
         isTalking = true;
         try { await nearbyNPC.Invoke(); }
@@ -174,11 +162,10 @@ public class Player : MonoBehaviour
         finally { isTalking = false; }
     }
 
-    private void HandleCancel() { if (nearbyRankingBoard != null && nearbyRankingBoard.IsOpen) nearbyRankingBoard.Close(); }
+    private void HandleCancel() { }
 
     private void OnDisable()
     {
-        if (nearbyRankingBoard != null) { nearbyRankingBoard.Close(); nearbyRankingBoard.SetGuideEnable(false); }
         if (nearbyNPC != null) nearbyNPC.SetGuideEnable(false);
         if (moveSource != null) moveSource.Stop();
         if (vacuumSource != null) { vacuumSource.Stop(); vacuumSource.volume = 0f; }

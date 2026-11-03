@@ -6,7 +6,6 @@ using UnityEngine.SceneManagement;
 public class LobbyManager : MonoBehaviour
 {
     [SerializeField] private UIParent uiParent;
-    [SerializeField] private Vector3 rankingBoardPosition = new Vector3(-13f, -0.77f, 22f);
     [SerializeField] private Player player;
     [SerializeField] private InputReader inputReader;
     [SerializeField] private ConfirmationDialog confirmationDialog;
@@ -34,23 +33,12 @@ public class LobbyManager : MonoBehaviour
             confirmationDialog.PrepareEnable();
             messageBox.PrepareEnable();
             await uiParent.Enable(destroyCancellationToken);
-            CreateRankingBoard();
             ready = true;
             player.SetPaused(wasPaused);
             inputReader.SetEnableAction(actions);
         }
         catch (OperationCanceledException) { }
         catch (Exception exception) { Debug.LogException(exception, this); }
-    }
-
-    private void CreateRankingBoard()
-    {
-        var boardObject = new GameObject("RankingBoard");
-        var camera = Camera.main;
-        var center = rankingBoardPosition + Vector3.up * 4.6f;
-        var facing = camera != null ? center - camera.transform.position : Vector3.forward;
-        boardObject.transform.SetPositionAndRotation(rankingBoardPosition, Quaternion.LookRotation(facing));
-        boardObject.AddComponent<RankingBoard>().Initialize(player, inputReader);
     }
 
     public bool TryBeginRanking()

@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "com.unityroom.client": {
+      "version": "https://github.com/naichilab/unityroom-client-library.git?path=Assets/unityroom#c4dea57e1c27567bac512e090a356b08abf83d0b",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "c4dea57e1c27567bac512e090a356b08abf83d0b"
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.10",
       "depth": 0,

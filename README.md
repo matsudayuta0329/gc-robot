@@ -261,3 +261,9 @@ PlayerのcollectClipにSRC/Sound/collect.mp3を設定しています。GarbageCo
 BGMはSceneBgmFadeがUIParentの開始・遷移アニメーションの進行に合わせてSmoothStepでフェードイン／アウトします。リザルト待機中は通常音量を維持します。最大音量は各Managerのbgm.volumeです。
 
 保存ランキングはUnityのTools > GC Robot > Reset Rankingで消去できます。ランキングのPlayerPrefsキーだけを削除し、ほかの設定は保持します。起動ごとの自動リセットはしません。
+
+### unityroomランキング
+
+GameシーンのResultUIにあるUnityroom Board No（既定1）へ、結果画面の終了時に回収スコアを整数で送ります。記録ルールはHighScoreDesc。unityroomのボード表示設定は整数・降順・単位欄を空にします。
+
+ゲーム設定の「API利用設定」で発行したHMAC認証用キーは、UnityのProjectでAssets/Resources/UnityroomRankingClient.prefabを選択し、InspectorのUnityroom Api Client > Hmac Keyへ入力してください。送信用クライアントは初回送信時にプレハブから生成されます。

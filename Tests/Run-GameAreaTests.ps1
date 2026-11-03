@@ -33,6 +33,7 @@ if (Test-Path "$repositoryRoot/Assets/UIAnimations") {
     Copy-Item "$repositoryRoot/Assets/UIAnimations" "$validationRoot/Assets" -Recurse -Force
 }
 $dependencies = [ordered]@{}
+$dependencies['com.unityroom.client'] = 'https://github.com/naichilab/unityroom-client-library.git?path=Assets/unityroom#c4dea57e1c27567bac512e090a356b08abf83d0b'
 $dependencies['com.unity.modules.animation'] = '1.0.0'
 $dependencies['com.unity.modules.physics'] = '1.0.0'
 $dependencies['com.unity.modules.audio'] = '1.0.0'
@@ -43,7 +44,7 @@ foreach ($packageName in @('com.unity.render-pipelines.universal','com.unity.ren
     $dependencies[$packageName] = 'file:' + $packageDirectory.FullName.Replace('\','/')
 }
 @{dependencies=$dependencies} | ConvertTo-Json -Depth 4 | Set-Content "$validationRoot/Packages/manifest.json"
-'{"name":"GcRobot.Runtime","references":["Unity.InputSystem","Unity.TextMeshPro","Unity.ugui","Unity.Cinemachine","Unity.RenderPipelines.Core.Runtime","Unity.RenderPipelines.Universal.Runtime"]}' | Set-Content "$validationRoot/Assets/Runtime/GcRobot.Runtime.asmdef"
+'{"name":"GcRobot.Runtime","references":["unityroom","Unity.InputSystem","Unity.TextMeshPro","Unity.ugui","Unity.Cinemachine","Unity.RenderPipelines.Core.Runtime","Unity.RenderPipelines.Universal.Runtime"]}' | Set-Content "$validationRoot/Assets/Runtime/GcRobot.Runtime.asmdef"
 '{"name":"GcRobot.Tests","references":["GcRobot.Runtime","Unity.InputSystem","Unity.TextMeshPro","Unity.ugui","Unity.Cinemachine","Unity.RenderPipelines.Core.Runtime","Unity.RenderPipelines.Universal.Runtime"],"optionalUnityReferences":["TestAssemblies"]}' | Set-Content "$validationRoot/Assets/Tests/GcRobot.Tests.asmdef"
 $resultsPath = "$repositoryRoot/Logs/game-area-results.xml"
 if (Test-Path -LiteralPath $resultsPath) { Remove-Item -LiteralPath $resultsPath }

@@ -13134,8 +13134,7 @@ MonoBehaviour:
   animationTimeout: 30
   countText: {fileID: 1985144628}
   continueButton: {fileID: 950355658}
-  nameInput: {fileID: 0}
-  rankText: {fileID: 0}
+  unityroomBoardNo: 1
 --- !u!225 &1910754033
 CanvasGroup:
   m_ObjectHideFlags: 0
